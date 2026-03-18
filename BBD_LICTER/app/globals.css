@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #0f0f1a;
+}
+
+@theme inline {
+  /* Colors (Licter light premium) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-card: #ffffff;
+  --color-accent: #6c3be4;
+  --color-accent-2: #a78bfa;
+  --color-cyan: #06b6d4;
+
+  /* Font families */
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-body: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Radius */
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+}
+
+/* App is intentionally light-only for COMEX clarity. */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: color-mix(in oklab, #6c3be4 22%, transparent);
+}
+
+/* Subtle animated mesh background */
+.licter-mesh {
+  background:
+    radial-gradient(900px 500px at 15% 20%, color-mix(in oklab, #6c3be4 22%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 85% 10%, color-mix(in oklab, #06b6d4 18%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 75% 80%, color-mix(in oklab, #a78bfa 18%, transparent), transparent 60%),
+    radial-gradient(1100px 700px at 10% 85%, color-mix(in oklab, #6c3be4 12%, transparent), transparent 65%);
+  filter: saturate(1.05);
+  animation: licterMeshFloat 14s ease-in-out infinite;
+}
+
+@keyframes licterMeshFloat {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0) scale(1.01);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Thin scrollbars (Windows-friendly) */
+* {
+  scrollbar-color: color-mix(in oklab, #6c3be4 30%, #e5e7eb) transparent;
+  scrollbar-width: thin;
+}
