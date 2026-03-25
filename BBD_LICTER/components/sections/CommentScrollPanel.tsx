@@ -2,25 +2,99 @@
 
 import { cn } from "@/lib/cn";
 import type { MentionRow } from "@/lib/types";
-import { SentimentBadge } from "@/components/ui/SentimentBadge";
-import { Instagram, Linkedin, MessageSquare, Music2, Timer, Twitter } from "lucide-react";
+import { Globe, Music2, ShieldCheck, Star } from "lucide-react";
 
-const PREVIEW_LEN = 120;
+type CommentSource = "Google" | "TikTok" | "Trustpilot";
 
-function SourceIcon({ source }: { source: MentionRow["source"] }) {
-  const cls = "size-4 text-slate-500";
+const FAKE_COMMENTS: ReadonlyArray<{
+  id: string;
+  source: CommentSource;
+  userName: string;
+  text: string;
+  sentiment: "positif" | "neutre";
+  stars: number; // 1..5
+}> = [
+  {
+    id: "c1",
+    source: "Google",
+    userName: "Camille D.",
+    text: "L'accueil à Lyon était parfait ! Les conseils produits étaient ultra précis.",
+    sentiment: "positif",
+    stars: 5,
+  },
+  {
+    id: "c2",
+    source: "TikTok",
+    userName: "Nora S.",
+    text: "Livraison ultra rapide, l'emballage était impeccable. Franchement au top.",
+    sentiment: "positif",
+    stars: 5,
+  },
+  {
+    id: "c3",
+    source: "Trustpilot",
+    userName: "Sofia M.",
+    text: "IA Insight : Satisfaction en hausse sur le maquillage, surtout pour les teintes.",
+    sentiment: "positif",
+    stars: 4,
+  },
+  {
+    id: "c4",
+    source: "Google",
+    userName: "Lucas R.",
+    text: "Expérience très correcte en boutique, mais quelques retards sur la disponibilité des produits.",
+    sentiment: "neutre",
+    stars: 3,
+  },
+  {
+    id: "c5",
+    source: "TikTok",
+    userName: "Aya K.",
+    text: "Les recommandations personnalisées m'ont vraiment aidé à trouver mon hydratant.",
+    sentiment: "positif",
+    stars: 4,
+  },
+  {
+    id: "c6",
+    source: "Trustpilot",
+    userName: "Inès P.",
+    text: "Service client réactif et réponses claires. Bon suivi jusqu'à la confirmation.",
+    sentiment: "positif",
+    stars: 5,
+  },
+];
+
+function SourceIcon({ source }: { source: CommentSource }) {
+  const cls = "size-4 text-black";
   switch (source) {
-    case "Twitter/X":
-      return <Twitter className={cls} />;
-    case "Instagram":
-      return <Instagram className={cls} />;
     case "TikTok":
       return <Music2 className={cls} />;
-    case "LinkedIn":
-      return <Linkedin className={cls} />;
+    case "Trustpilot":
+      return <ShieldCheck className={cls} />;
+    case "Google":
     default:
-      return <MessageSquare className={cls} />;
+      return <Globe className={cls} />;
   }
+}
+
+function Stars({ count, tone }: { count: number; tone: "rose" | "noir" }) {
+  const fill = tone === "rose" ? "#FDC9D3" : "#000000";
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${count} étoiles`}>
+      {Array.from({ length: 5 }).map((_, i) => {
+        const filled = i < count;
+        return (
+          <Star
+            // eslint-disable-next-line react/no-array-index-key
+            key={i}
+            className={cn("size-4", filled ? "" : "text-black/20")}
+            strokeWidth={filled ? 2 : 1.5}
+            fill={filled ? fill : "none"}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 type Props = Readonly<{
@@ -31,74 +105,102 @@ type Props = Readonly<{
 }>;
 
 export function CommentScrollPanel({ rows, isLoading, className, maxHeight = "420px" }: Props) {
+  // La consigne demande des données placeholder réalistes.
+  // `rows/isLoading` restent dans la signature pour compatibilité, mais on ne les utilise pas pour l'instant.
+  const items = FAKE_COMMENTS;
+  const duplicated = [...items, ...items];
+
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-3xl border border-slate-100 bg-white/80 shadow-sm backdrop-blur",
+        "relative w-full overflow-hidden rounded-2xl border border-[#00000010] bg-white shadow-sm",
         className,
       )}
     >
-      <div className="border-b border-slate-100 px-5 py-3">
-        <h2 className="text-sm font-semibold text-slate-800">Commentaires des utilisateurs</h2>
-        <p className="mt-0.5 text-xs text-slate-500">Dernières mentions — défilez pour voir plus</p>
-      </div>
-      <div
-        className="overflow-y-auto overscroll-contain py-2"
-        style={{ maxHeight }}
-      >
-        {isLoading ? (
-          <div className="space-y-3 px-4 py-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100" />
-            ))}
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-slate-500">
-            Aucun commentaire récent.
-          </div>
-        ) : (
-          <ul className="space-y-2 px-3 pb-2">
-            {rows.map((r) => {
-              const text = (r.texte ?? "").trim();
-              const preview = text.length <= PREVIEW_LEN ? text : `${text.slice(0, PREVIEW_LEN)}…`;
-              return (
-                <li
-                  key={r.id}
-                  className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-50">
-                      <SourceIcon source={r.source} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-slate-800">{preview || "—"}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <SentimentBadge sentiment={r.sentiment} />
-                        <span className="text-xs text-slate-500">{r.source}</span>
-                        <span className="text-xs text-slate-400">
-                          {new Date(r.date).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
-                        {r.theme ? (
-                          <span className="text-xs text-slate-500">· {r.theme}</span>
-                        ) : null}
+      <div className="relative px-5 py-4">
+        {/* Fond flouté rose clair/blanc derrière la banderole */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-[#FDC9D3]/55 via-white/60 to-[#FDC9D3]/40 blur-2xl opacity-90"
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10">
+          <h2 className="text-sm font-semibold text-black">Commentaires des utilisateurs</h2>
+
+          <div className="comment-marquee group relative mt-3">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white to-transparent" />
+
+            <div className="comment-marquee__viewport overflow-hidden">
+              <ul className="comment-marquee__track flex gap-3 pr-5">
+                {duplicated.map((c, idx) => {
+                  const isPositive = c.sentiment === "positif";
+                  const badgeBg = isPositive ? "bg-[#FDC9D3]/34" : "bg-black/5";
+                  const badgeText = isPositive ? "text-[#C94A7A]" : "text-black/60";
+                  return (
+                    <li
+                      key={`${c.id}-${idx}`}
+                      className="comment-marquee__card w-[320px] shrink-0 rounded-2xl border border-[#00000010] bg-white px-4 py-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 grid size-9 place-items-center rounded-2xl border border-[#00000010] bg-white">
+                          <SourceIcon source={c.source} />
                       </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-xs text-slate-400">Note</div>
-                      <div className="font-mono text-sm font-semibold text-slate-700">
-                        {typeof r.note === "number" ? r.note.toFixed(1) : "—"}
+
+                      <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", badgeBg, badgeText)}>
+                              {isPositive ? "Positif" : "Neutre"}
+                            </span>
+                            <Stars count={c.stars} tone={isPositive ? "rose" : "noir"} />
+                        </div>
+
+                          <div className="mt-2 flex items-center justify-between gap-3">
+                            <span className="truncate text-[11px] font-medium text-black/70">{c.userName}</span>
+                            <span className="truncate text-[11px] font-medium text-black/40">{c.source}</span>
+                          </div>
+
+                          <p
+                            className={cn(
+                              "mt-2 text-sm text-black/80 [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden"
+                            )}
+                          >
+                            {c.text}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes commentScroll {
+            0% {
+              transform: translateX(0%);
+            }
+            100% {
+              transform: translateX(-50%);
+            }
+          }
+
+          .comment-marquee__track {
+            animation: commentScroll 20s linear infinite;
+            will-change: transform;
+          }
+
+          .comment-marquee:hover .comment-marquee__track {
+            animation-play-state: paused;
+          }
+
+          .comment-marquee__viewport {
+            /* force la création du contexte de rendu pour smoother la perf */
+            contain: layout paint;
+          }
+        `}</style>
       </div>
     </div>
   );
