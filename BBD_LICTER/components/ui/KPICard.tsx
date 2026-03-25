@@ -57,10 +57,10 @@ export function KPICard({
           Icon: normalizedTrend === "up" ? ArrowUpRight : normalizedTrend === "down" ? ArrowDownRight : Minus,
         };
 
-  // Icône : dégradé discret noir -> rose clair (Lucide utilise `currentColor`).
+  // Icône : dégradé rose -> or (Lucide utilise `currentColor`).
   const iconElement = (() => {
     if (!icon) return null;
-    const gradientClasses = "text-transparent bg-clip-text bg-gradient-to-r from-[#000000] to-[#FDC9D3]";
+    const gradientClasses = "text-transparent bg-clip-text bg-gradient-to-r from-[#C4637A] to-[#C9A96E]";
     if (isValidElement(icon)) {
       const iconEl = icon as ReactElement<{ className?: string }>;
       return cloneElement(iconEl, {
@@ -70,14 +70,12 @@ export function KPICard({
     return icon;
   })();
 
-  const gradientId = useId();
-  const fillId = `kpiFill-${gradientId}`;
+  useId(); // keep useId call to avoid unused hook churn during refactors
+
+  // Mini-sparkline : Sephora rose en trait + remplissage très léger.
   const area = badge
-    ? {
-        stroke: badge.isPositive ? "#000000" : "#000000",
-        fill: `url(#${fillId})`,
-      }
-    : { stroke: "#000000", fill: `url(#${fillId})` };
+    ? { stroke: "#C4637A", fill: "rgba(196, 99, 122, 0.08)" }
+    : { stroke: "#C4637A", fill: "rgba(196, 99, 122, 0.08)" };
 
   const sentimentProgress =
     title === "Indice de Sentiment" && typeof value === "number"
@@ -92,84 +90,128 @@ export function KPICard({
       }}
       whileTap={{ scale: 0.99 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      style={{ willChange: "transform" }}
-      className={cn(
-        "group relative overflow-hidden rounded-2xl border-[0.5px] border-[#E6E6E6] bg-white p-5 transition-all duration-200 hover:border-[#FDC9D3]",
-        className,
-      )}
+      className={cn("group transition-all duration-200", className)}
+      style={{
+        willChange: "transform",
+        background: "var(--bg-card)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-card)",
+        padding: "28px 28px 24px",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+        position: "relative",
+      }}
     >
-      <div className="absolute inset-x-0 top-0 h-[2px] sephora-stripes" />
+      <div
+        aria-hidden
+        className="absolute left-0 top-0 h-[3px] w-12"
+        style={{
+          background: "linear-gradient(90deg, var(--s-rose-deep), var(--s-gold))",
+          borderRadius: "0 0 4px 0",
+        }}
+      />
+
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-black">{title}</div>
-          <div className="mt-2">
-            {isLoading ? (
-              <div className="skeleton h-8 w-32 rounded-xl" />
-            ) : value == null ? (
-              <div className="text-2xl font-semibold text-black/30">—</div>
-            ) : typeof value === "string" ? (
-              <div className="text-3xl font-semibold tracking-tight text-black tabular-nums">{value}</div>
-            ) : (
-              <AnimatedCounter
-                value={value}
-                duration={1600}
-                decimals={0}
-                suffix={valueSuffix}
-                className="text-3xl font-semibold tracking-tight text-black tabular-nums"
-              />
-            )}
-
-            {title === "Indice de Sentiment" ? (
-              <div className="mt-2">
-                {isLoading || sentimentProgress == null ? (
-                  <div className="skeleton h-[3px] w-full rounded-full" />
-                ) : (
-                  <div className="h-[3px] w-full overflow-hidden rounded-full bg-black/5">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#000000] to-[#FDC9D3]"
-                      style={{ width: `${sentimentProgress}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {badge && !isLoading ? (
-              <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[#FDC9D3]/20 px-2 py-1 text-xs font-semibold">
-                <badge.Icon
-                  className={cn(
-                    "size-3.5",
-                    badge.isPositive ? "text-[#C94A7A]" : "text-black/70",
-                  )}
-                />
-                <span className={badge.isPositive ? "text-[#C94A7A]" : "text-black/70"}>{badge.label}</span>
-              </div>
-            ) : null}
+          <div
+            className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--text-muted)", marginBottom: 12 }}
+          >
+            {title}
           </div>
+
+          {isLoading ? (
+            <div>
+              <div className="skeleton h-3 w-20 mb-4" />
+              <div className="skeleton h-12 w-28 mb-3" />
+            </div>
+          ) : (
+            <>
+              <div
+                className="flex items-start justify-between gap-4"
+                style={{ marginBottom: title === "Indice de Sentiment" ? 10 : 6 }}
+              >
+                <div>
+                  {value == null ? (
+                    <div className="text-[52px] font-semibold leading-none text-[rgba(20,7,16,0.3)]">—</div>
+                  ) : typeof value === "string" ? (
+                    <div className="text-[52px] font-semibold leading-none text-[var(--text-primary)] tabular-nums">
+                      {value}
+                    </div>
+                  ) : (
+                    <AnimatedCounter
+                      value={value}
+                      duration={1600}
+                      decimals={0}
+                      suffix={valueSuffix}
+                      className="font-mono text-[52px] font-medium leading-none text-[var(--text-primary)] tabular-nums"
+                    />
+                  )}
+
+                  {title === "Indice de Sentiment" ? (
+                    <div className="mt-3">
+                      {isLoading || sentimentProgress == null ? (
+                        <div className="skeleton h-[3px] w-full rounded-full" />
+                      ) : (
+                        <div className="h-[3px] w-full overflow-hidden rounded-full bg-[rgba(20,7,16,0.04)]">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${sentimentProgress}%`,
+                              background: "linear-gradient(90deg, var(--s-rose-deep), var(--s-gold))",
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                {badge ? (
+                  (() => {
+                    const tone =
+                      normalizedTrend === "flat"
+                        ? "neutral"
+                        : badge.isPositive
+                          ? "positive"
+                          : "negative";
+                    const wrapStyle =
+                      tone === "positive"
+                        ? { background: "var(--positive-bg)", color: "var(--positive)" }
+                        : tone === "negative"
+                          ? { background: "var(--negative-bg)", color: "var(--negative)" }
+                          : { background: "var(--neutral-bg)", color: "var(--neutral)" };
+                    return (
+                      <div
+                        className="inline-flex items-center gap-3 rounded-full px-[10px] py-[3px] text-[12px] font-semibold"
+                        style={wrapStyle}
+                      >
+                        <badge.Icon className="size-3.5" />
+                        <span>{badge.label}</span>
+                      </div>
+                    );
+                  })()
+                ) : null}
+              </div>
+            </>
+          )}
         </div>
 
         {iconElement ? (
-          <div className="relative grid size-10 place-items-center rounded-2xl border border-black/10 bg-white text-black transition-all duration-300 group-hover:shadow-[0_0_24px_rgba(253,201,211,0.55)]">
-            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[#FDC9D3]/30 blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            <div className="relative z-10">{iconElement}</div>
+          <div className="relative z-10 mt-1 flex size-10 items-center justify-center rounded-2xl">
+            {iconElement}
           </div>
         ) : null}
       </div>
 
       {children ? <div className="mt-4">{children}</div> : null}
 
-      <div className="mt-4 h-14">
+      <div className="mt-4 h-[48px]">
         {isLoading ? (
-          <div className="skeleton h-full w-full rounded-2xl" />
+          <div className="skeleton h-2 w-full" />
         ) : sparkline && sparkline.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparkline} margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>
-              <defs>
-                <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#000000" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="#ffffff" stopOpacity={1} />
-                </linearGradient>
-              </defs>
               <Area
                 type="monotone"
                 dataKey="value"
@@ -182,7 +224,7 @@ export function KPICard({
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full w-full rounded-2xl bg-black/5" />
+          <div className="h-full w-full rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
         )}
       </div>
 

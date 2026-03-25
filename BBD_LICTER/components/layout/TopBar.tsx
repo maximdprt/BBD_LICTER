@@ -4,40 +4,71 @@ import { MobileSidebar } from "@/components/layout/MobileSidebar";
 
 export function TopBar() {
   return (
-    <header className="sticky top-0 z-10 bg-white shadow-sm">
-      {/* Bandeau marque 8px: alternance carrés noir/blanc */}
-      <div
-        className="h-2 w-full"
-        style={{
-          backgroundImage: "repeating-linear-gradient(90deg, #000000 0 12px, #FFFFFF 12px 24px)",
-        }}
-      />
+    <header
+      className="sticky top-0 z-10"
+      style={{
+        height: 60,
+        background: "rgba(253,252,251,0.88)",
+        backdropFilter: "blur(14px)",
+        borderBottom: "1px solid var(--border)",
+        padding: "0 32px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <MobileSidebar />
+      </div>
 
-      <div className="mx-auto grid h-[56px] w-full max-w-[1400px] grid-cols-[1fr_auto_1fr] items-center px-6">
-        <div className="flex items-center">
-          <MobileSidebar />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 20,
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            lineHeight: 1.1,
+          }}
+        >
+          SEPHORA Intel
         </div>
-
-        {/* Titre central */}
-        <div className="text-center">
-          <div className="font-display text-[26px] font-extrabold uppercase tracking-[0.3em] text-[#000000]">
-            SEPHORA
-          </div>
-          <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.25em] text-[#3b3b3b]">
-            INTEL
-          </div>
-        </div>
-
-        {/* Action à droite */}
-        <div className="flex items-center justify-end">
-          <button
-            type="button"
-            className="rounded-sm border border-[#FDC9D3] bg-white px-4 py-2 text-sm font-semibold text-[#000000] transition hover:bg-black/5"
-          >
-            Export PDF
-          </button>
+        <div
+          style={{
+            marginTop: 2,
+            fontFamily: "var(--font-body)",
+            fontSize: 13,
+            color: "var(--text-muted)",
+            fontWeight: 400,
+          }}
+        >
+          Brand & Market Intelligence
         </div>
       </div>
+
+      <button
+        type="button"
+        style={{
+          background: "var(--s-black)",
+          color: "#FFFFFF",
+          borderRadius: 10,
+          padding: "8px 20px",
+          fontFamily: "var(--font-body)",
+          fontSize: 13,
+          fontWeight: 500,
+          border: "none",
+          cursor: "pointer",
+          transition: "background 200ms ease",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = "#2D1018";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = "var(--s-black)";
+        }}
+      >
+        Export PDF
+      </button>
     </header>
   );
 }

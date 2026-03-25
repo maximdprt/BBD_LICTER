@@ -32,21 +32,24 @@ export function MobileSidebar() {
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="absolute left-0 top-0 h-dvh w-[280px] border-r border-black/10 bg-white px-4 py-5"
+              className="absolute left-0 top-0 h-dvh w-[240px] px-4 py-5"
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
+              style={{ background: "var(--bg-sidebar)", boxShadow: "var(--shadow-sidebar)" }}
             >
               <div className="flex items-center justify-between px-2">
-                <div className="text-xs font-semibold text-text-secondary">Navigation</div>
+                <div style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.45)" }}>
+                  Navigation
+                </div>
                 <button
                   type="button"
-                  className="grid size-9 place-items-center rounded-sm border border-black/10 bg-white"
+                  className="grid size-9 place-items-center rounded-sm border border-white/10 bg-transparent"
                   onClick={() => setOpen(false)}
                   aria-label="Fermer le menu"
                 >
-                  <X className="size-5 text-foreground/70" />
+                  <X className="size-5 text-white/70" />
                 </button>
               </div>
 

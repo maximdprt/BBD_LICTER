@@ -17,9 +17,9 @@ function winner(a: number | null, b: number | null, higherIsBetter = true) {
 }
 
 function cellTone(state: "win" | "lose" | "neutral") {
-  if (state === "win") return "bg-emerald-50 text-emerald-800 ring-emerald-200";
-  if (state === "lose") return "bg-rose-50 text-rose-800 ring-rose-200";
-  return "bg-white text-foreground/80 ring-black/5";
+  if (state === "win") return { background: "#EAF7F1", color: "#2A9460" };
+  if (state === "lose") return { background: "#EFF3FA", color: "#3A6491" };
+  return { background: "var(--bg-secondary)", color: "var(--text-muted)" };
 }
 
 export function CompetitorMatrix({ data, isLoading, className }: Props) {
@@ -72,27 +72,86 @@ export function CompetitorMatrix({ data, isLoading, className }: Props) {
   ] as const;
 
   return (
-    <div className={cn("overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm", className)}>
-      <div className="grid grid-cols-4 gap-0 border-b border-gray-100 bg-white/80 px-4 py-3 text-xs font-semibold text-text-secondary">
-        <div>Critère</div>
-        <div>Sephora</div>
-        <div>Nocibé</div>
-        <div>Avantage</div>
+    <div
+      className={cn("overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] shadow-sm", className)}
+      style={{ background: "var(--bg-card)" }}
+    >
+      <div
+        className="grid grid-cols-4 gap-0 px-4 py-3 text-xs font-semibold"
+        style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}
+      >
+        <div style={{ fontFamily: "var(--font-body)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Critère</div>
+        <div style={{ fontFamily: "var(--font-body)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <span style={{ color: "#C4637A", marginRight: 6 }}>●</span>Sephora
+        </div>
+        <div style={{ fontFamily: "var(--font-body)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <span style={{ color: "#6B8FB5", marginRight: 6 }}>●</span>Nocibé
+        </div>
+        <div style={{ fontFamily: "var(--font-body)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Avantage</div>
       </div>
 
-      {rows.map((r) => {
+      {rows.map((r, rowIdx) => {
         const advantage =
           r.win.a === "neutral" ? "—" : r.win.a === "win" ? "Sephora" : "Nocibé";
+        const isEven = rowIdx % 2 === 0;
         return (
-          <div key={r.label} className="grid grid-cols-4 gap-3 px-4 py-3 text-sm">
-            <div className="text-foreground/80">{r.label}</div>
-            <div className={cn("rounded-2xl px-3 py-2 text-sm ring-1 ring-inset", cellTone(r.win.a))}>
+          <div
+            key={r.label}
+            className="grid grid-cols-4 gap-3 px-4 py-3 text-sm transition-colors duration-150 hover:bg-[var(--s-blush)]"
+            style={{ background: isEven ? "#FFFFFF" : "var(--bg-secondary)" }}
+          >
+            <div style={{ fontFamily: "var(--font-body)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10 }}>
+              {r.label}
+            </div>
+
+            <div
+              style={{
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontFamily: "var(--font-mono)",
+                fontWeight: 500,
+                ...cellTone(r.win.a),
+              }}
+            >
               {r.sephora}
             </div>
-            <div className={cn("rounded-2xl px-3 py-2 text-sm ring-1 ring-inset", cellTone(r.win.b))}>
+
+            <div
+              style={{
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontFamily: "var(--font-mono)",
+                fontWeight: 500,
+                ...cellTone(r.win.b),
+              }}
+            >
               {r.nocibe}
             </div>
-            <div className="flex items-center text-sm font-semibold text-foreground/80">
+
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 999,
+                padding: "3px 12px",
+                fontFamily: "var(--font-body)",
+                fontWeight: 500,
+                fontSize: 12,
+                color:
+                  advantage === "Sephora"
+                    ? "#FFFFFF"
+                    : advantage === "Nocibé"
+                      ? "#FFFFFF"
+                      : "var(--text-muted)",
+                background:
+                  advantage === "Sephora"
+                    ? "#C4637A"
+                    : advantage === "Nocibé"
+                      ? "#6B8FB5"
+                      : "var(--bg-secondary)",
+              }}
+            >
               {advantage}
             </div>
           </div>

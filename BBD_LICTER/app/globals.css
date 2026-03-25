@@ -6,39 +6,87 @@
 }
 
 :root {
-  --background: #f9f9f9;
-  --foreground: #000000;
+  /* ── Backgrounds ── */
+  --bg-primary: #FDFCFB;
+  --bg-secondary: #FAF7F5;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #140710;
+
+  /* ── Sephora Brand ── */
+  --s-black: #140710;
+  --s-rose: #E8A0B4;
+  --s-rose-deep: #C4637A;
+  --s-nude: #D4A896;
+  --s-gold: #C9A96E;
+  --s-blush: #F7ECF0;
+
+  /* ── Sentiment ── */
+  --positive: #3DB87A;
+  --positive-bg: #EAF7F1;
+  --negative: #E05C6B;
+  --negative-bg: #FDEEF0;
+  --neutral: #8A95A8;
+  --neutral-bg: #F0F2F6;
+
+  /* ── Graphiques ── */
+  --chart-sephora: #C4637A;
+  --chart-nocibe: #6B8FB5;
+  --chart-gold: #C9A96E;
+  --chart-violet: #8B72C8;
+  --chart-green: #3DB87A;
+  --chart-twitter: #1DA1F2;
+  --chart-insta: #E1306C;
+  --chart-tiktok: #2D2D2D;
+  --chart-linkedin: #0A66C2;
+
+  /* ── Textes ── */
+  --text-primary: #140710;
+  --text-secondary: #6B5C65;
+  --text-muted: #A89BA1;
+
+  /* ── Bordures & Effets ── */
+  --border: #EDE8E6;
+  --radius-card: 20px;
+  --radius-sm: 12px;
+  --shadow-card: 0 2px 20px rgba(196,99,122,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-hover: 0 10px 40px rgba(196,99,122,0.14), 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-sidebar: 4px 0 24px rgba(20,7,16,0.12);
 }
 
 @theme inline {
-  /* Colors (Sephora-inspired minimal) */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-text-secondary: rgba(0, 0, 0, 0.55);
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-card: #ffffff;
-  --color-accent: #000000;
-  --color-critical: #ff00ed;
+  /* Colors */
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-card: var(--bg-card);
+  --color-accent: var(--s-black);
+  --color-critical: var(--negative);
 
   /* Font families */
-  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-body: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
 
   /* Radius */
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
+  --radius-2xl: var(--radius-sm);
+  --radius-3xl: var(--radius-card);
 }
 
 /* App is intentionally light-only for COMEX clarity. */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono {
+  font-family: 'DM Mono', monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
@@ -104,6 +152,7 @@ body {
   }
 }
 
+.alert-banner,
 .alert-banner--danger {
   animation: pulse-border 2.5s ease-in-out infinite;
 }
@@ -114,8 +163,8 @@ body {
     opacity: 1;
   }
   50% {
-    transform: scale(1.4);
-    opacity: 0.5;
+    transform: scale(1.5);
+    opacity: 0.4;
   }
 }
 

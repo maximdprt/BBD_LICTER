@@ -13,17 +13,27 @@ type Props = Readonly<{
 export function ChartCard({ title, subtitle, right, children, isLoading, className }: Props) {
   return (
     <section
-      className={cn(
-        "relative overflow-hidden rounded-sm border-[0.5px] border-black/10 bg-white p-5",
-        className,
-      )}
+      className={cn("relative overflow-hidden", className)}
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-card)",
+        padding: "28px 32px",
+        boxShadow: "var(--shadow-card)",
+      }}
     >
-      <div className="absolute inset-x-0 top-0 h-[2px] sephora-stripes" />
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-black">{title}</div>
+          <div
+            className="text-xs font-semibold uppercase tracking-[0.12em]"
+            style={{ color: "var(--text-muted)" }}
+          >
+            {title}
+          </div>
           {subtitle ? (
-            <div className="mt-1 text-xs text-text-secondary">{subtitle}</div>
+            <div className="mt-1 text-[13px]" style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+              {subtitle}
+            </div>
           ) : null}
         </div>
         {right ? <div className="shrink-0">{right}</div> : null}

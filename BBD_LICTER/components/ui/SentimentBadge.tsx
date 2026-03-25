@@ -9,10 +9,10 @@ type Props = Readonly<{
 export function SentimentBadge({ sentiment, className }: Props) {
   const tone =
     sentiment === "positif"
-      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+      ? "bg-[var(--positive-bg)] text-[#2A9460]"
       : sentiment === "négatif"
-        ? "bg-rose-50 text-rose-700 ring-rose-200"
-        : "bg-gray-50 text-gray-700 ring-gray-200";
+        ? "bg-[var(--negative-bg)] text-[#C0392B]"
+        : "bg-[var(--neutral-bg)] text-[#5A6478]";
 
   const label =
     sentiment === "positif" ? "Positif" : sentiment === "négatif" ? "Négatif" : "Neutre";
@@ -20,7 +20,7 @@ export function SentimentBadge({ sentiment, className }: Props) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+        "inline-flex items-center rounded-full px-3 py-[3px] text-[11px] font-semibold uppercase tracking-[0.06em]",
         tone,
         className,
       )}
