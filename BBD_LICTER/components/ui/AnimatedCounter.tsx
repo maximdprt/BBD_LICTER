@@ -1,48 +1,48 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { animate } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { useInView } from "framer-motion";
 
-type Props = Readonly<{
-  value: number;
-  durationMs?: number;
-  decimals?: number;
-  prefix?: string;
-  suffix?: string;
-  className?: string;
-}>;
+function easeOutQuart(t: number): number {
+  return 1 - Math.pow(1 - t, 4);
+}
 
 export function AnimatedCounter({
   value,
-  durationMs = 2000,
+  duration = 1600,
   decimals = 0,
-  prefix,
-  suffix,
+  suffix = "",
   className,
-}: Props) {
+}: {
+  value: number;
+  duration?: number;
+  decimals?: number;
+  suffix?: string;
+  className?: string;
+}) {
   const [display, setDisplay] = useState(0);
-
-  const fmt = useMemo(() => {
-    return new Intl.NumberFormat("fr-FR", {
-      maximumFractionDigits: decimals,
-      minimumFractionDigits: decimals,
-    });
-  }, [decimals]);
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true });
 
   useEffect(() => {
-    const controls = animate(display, value, {
-      duration: durationMs / 1000,
-      ease: "easeOut",
-      onUpdate: (v) => setDisplay(v),
-    });
-    return () => controls.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, durationMs, decimals]);
+    if (!isInView) return;
+
+    const start = performance.now();
+    const frame = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutQuart(progress);
+      const next = parseFloat((eased * value).toFixed(decimals));
+      setDisplay(next);
+      if (progress < 1) requestAnimationFrame(frame);
+    };
+
+    requestAnimationFrame(frame);
+  }, [isInView, value, duration, decimals]);
 
   return (
-    <span className={className}>
-      {prefix}
-      {fmt.format(display)}
+    <span ref={ref} className={className ?? "font-mono tabular-nums"}>
+      {display.toLocaleString("fr-FR", { minimumFractionDigits: decimals })}
       {suffix}
     </span>
   );

@@ -23,7 +23,7 @@ function cellTone(state: "win" | "lose" | "neutral") {
 }
 
 export function CompetitorMatrix({ data, isLoading, className }: Props) {
-  if (isLoading) return <div className={cn("h-[280px] animate-pulse rounded-3xl bg-black/4", className)} />;
+  if (isLoading) return <div className={cn("skeleton h-[280px] rounded-3xl", className)} />;
   if (!data)
     return (
       <div className={cn("rounded-3xl border border-border bg-white p-6 text-sm text-text-secondary", className)}>

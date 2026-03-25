@@ -66,26 +66,29 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
           const active =
             pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
-            <Link
+            <motion.div
               key={item.href}
-              href={item.href}
-              onClick={() => params?.onNavigate?.()}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-all duration-300",
-                active
-                  ? "text-black font-bold"
-                  : "text-black/70 hover:bg-black/3 hover:text-black",
-              )}
+              whileHover={{ x: 4 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
             >
-              {active ? (
-                <span className="absolute left-0 top-1 bottom-1 w-1 bg-[#FDC9D3]" />
-              ) : null}
-              <Icon className="size-[18px] text-current transition-all duration-300 group-hover:drop-shadow-[0_0_12px_rgba(253,201,211,0.55)]" />
-              <span className="truncate">{item.label}</span>
-              {active && item.label === "Vue d'ensemble" ? (
-                <span className="pointer-events-none absolute bottom-1 left-3 right-3 h-[2px] bg-[#FDC9D3]" />
-              ) : null}
-            </Link>
+              <Link
+                href={item.href}
+                onClick={() => params?.onNavigate?.()}
+                className={cn(
+                  "group relative flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-all duration-200",
+                  active
+                    ? "text-black font-bold"
+                    : "text-black/70 hover:bg-black/3 hover:text-black",
+                )}
+              >
+                {active ? <span className="absolute left-0 top-1 bottom-1 w-1 bg-[#FDC9D3]" /> : null}
+                <Icon className="size-[18px] text-current transition-all duration-200 group-hover:drop-shadow-[0_0_12px_rgba(253,201,211,0.55)]" />
+                <span className="truncate">{item.label}</span>
+                {active && item.label === "Vue d'ensemble" ? (
+                  <span className="pointer-events-none absolute bottom-1 left-3 right-3 h-[2px] bg-[#FDC9D3]" />
+                ) : null}
+              </Link>
+            </motion.div>
           );
         })}
       </nav>
@@ -97,8 +100,8 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
           </div>
           <div className="mt-1 flex items-center gap-2 text-xs text-text-secondary">
             <span className="relative inline-flex size-2">
-              <span className="absolute inline-flex size-2 animate-ping rounded-full bg-[#FF00ED]/40" />
-              <span className="relative inline-flex size-2 rounded-full bg-[#FF00ED]" />
+              <span className="absolute inset-0 rounded-full bg-[#FF00ED]/40" />
+              <span className="live-dot absolute inset-0 rounded-full bg-[#FF00ED]" />
             </span>
             <span className="font-light text-[#FF00ED]">Système en ligne</span>
           </div>

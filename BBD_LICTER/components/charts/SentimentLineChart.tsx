@@ -145,6 +145,10 @@ export function SentimentLineChart({ data }: Props) {
               strokeWidth={5}
               dot={false}
               activeDot={{ r: 5, fill: "#FDC9D3", stroke: "#FDC9D3", strokeWidth: 2 }}
+              isAnimationActive={true}
+              animationDuration={1200}
+              animationEasing="ease-out"
+              animationBegin={100}
             />
             <Line
               type="monotone"
@@ -154,6 +158,10 @@ export function SentimentLineChart({ data }: Props) {
               strokeWidth={2}
               dot={false}
               activeDot={false}
+              isAnimationActive={true}
+              animationDuration={1200}
+              animationEasing="ease-out"
+              animationBegin={200}
             />
           </LineChart>
         </ResponsiveContainer>

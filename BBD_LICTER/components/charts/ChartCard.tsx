@@ -31,7 +31,7 @@ export function ChartCard({ title, subtitle, right, children, isLoading, classNa
 
       <div className="mt-4">
         {isLoading ? (
-          <div className="h-[260px] w-full animate-pulse rounded-sm bg-black/4" />
+          <div className="skeleton h-[260px] w-full rounded-sm" />
         ) : (
           children
         )}

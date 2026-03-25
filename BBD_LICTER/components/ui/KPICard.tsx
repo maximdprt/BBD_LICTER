@@ -86,10 +86,15 @@ export function KPICard({
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02, y: -2 }}
-      transition={{ type: "spring", stiffness: 350, damping: 24 }}
+      whileHover={{
+        y: -3,
+        boxShadow: "0 12px 40px rgba(196, 99, 122, 0.14)",
+      }}
+      whileTap={{ scale: 0.99 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      style={{ willChange: "transform" }}
       className={cn(
-        "group relative overflow-hidden rounded-2xl border-[0.5px] border-[#E6E6E6] bg-white p-5 transition-all duration-300 hover:border-[#FDC9D3]",
+        "group relative overflow-hidden rounded-2xl border-[0.5px] border-[#E6E6E6] bg-white p-5 transition-all duration-200 hover:border-[#FDC9D3]",
         className,
       )}
     >
@@ -99,7 +104,7 @@ export function KPICard({
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-black">{title}</div>
           <div className="mt-2">
             {isLoading ? (
-              <div className="h-8 w-32 animate-pulse rounded-xl bg-black/6" />
+              <div className="skeleton h-8 w-32 rounded-xl" />
             ) : value == null ? (
               <div className="text-2xl font-semibold text-black/30">—</div>
             ) : typeof value === "string" ? (
@@ -107,7 +112,7 @@ export function KPICard({
             ) : (
               <AnimatedCounter
                 value={value}
-                durationMs={2000}
+                duration={1600}
                 decimals={0}
                 suffix={valueSuffix}
                 className="text-3xl font-semibold tracking-tight text-black tabular-nums"
@@ -117,7 +122,7 @@ export function KPICard({
             {title === "Indice de Sentiment" ? (
               <div className="mt-2">
                 {isLoading || sentimentProgress == null ? (
-                  <div className="h-[3px] w-full animate-pulse rounded-full bg-black/10" />
+                  <div className="skeleton h-[3px] w-full rounded-full" />
                 ) : (
                   <div className="h-[3px] w-full overflow-hidden rounded-full bg-black/5">
                     <div
@@ -155,7 +160,7 @@ export function KPICard({
 
       <div className="mt-4 h-14">
         {isLoading ? (
-          <div className="h-full w-full animate-pulse rounded-2xl bg-black/6" />
+          <div className="skeleton h-full w-full rounded-2xl" />
         ) : sparkline && sparkline.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparkline} margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>

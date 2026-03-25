@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 
@@ -10,52 +11,59 @@ type Props = Readonly<{
 }>;
 
 export function SentimentGauge({ value, size = 220, className }: Props) {
-  const v = value == null ? 0 : Math.max(0, Math.min(100, value));
-  const stroke = 14;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const progress = (v / 100) * c;
+  const gaugeValue = value == null ? 0 : Math.max(0, Math.min(100, value));
+  const gradientId = useId();
+  const radius = 54;
+  const strokeWidth = 10;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (gaugeValue / 100) * circumference * 0.75;
 
-  const tone =
-    value == null
-      ? "stroke-gray-200"
-      : v < 45
-        ? "stroke-[color:var(--color-critical)]"
-        : "stroke-black";
+  const strokeBase = value == null ? "#0000001f" : gaugeValue < 45 ? "#E05C6B" : "#000000";
 
   return (
     <div
       className={cn("relative grid place-items-center", className)}
       style={{ width: size, height: size }}
     >
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} viewBox="0 0 120 120" className="-rotate-90">
+        <defs>
+          <linearGradient id={`gaugeGradient-${gradientId}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#000000" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#FDC9D3" stopOpacity={1} />
+          </linearGradient>
+        </defs>
+
         <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
+          cx="60"
+          cy="60"
+          r={radius}
           fill="transparent"
-          stroke="rgba(0,0,0,0.08)"
-          strokeWidth={stroke}
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="transparent"
-          className={tone}
-          strokeWidth={stroke}
+          stroke={strokeBase}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeDasharray={c}
-          initial={{ strokeDashoffset: c }}
-          animate={{ strokeDashoffset: c - progress }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
+          opacity={0.35}
+        />
+
+        <motion.circle
+          cx="60"
+          cy="60"
+          r={radius}
+          stroke={`url(#gaugeGradient-${gradientId})`}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.4, ease: [0.25, 0.1, 0.25, 1], delay: 0.3 }}
+          style={{ willChange: "stroke-dashoffset" }}
         />
       </svg>
 
       <div className="pointer-events-none absolute text-center">
         <div className="font-display text-xs font-semibold text-text-secondary">Indice</div>
         <div className="mt-1 font-mono text-4xl font-semibold tracking-tight text-foreground">
-          {value == null ? "—" : v}
+          {value == null ? "—" : Math.round(gaugeValue)}
         </div>
         <div className="mt-1 text-xs text-text-secondary">sur 100</div>
       </div>

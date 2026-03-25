@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { MessageSquare, PieChart, Smile, TrendingUp } from "lucide-react";
 
 import { ChartCard } from "@/components/charts/ChartCard";
@@ -25,6 +25,7 @@ import { ThemeAnalysis } from "@/components/sections/ThemeAnalysis";
 
 export default function DashboardPage() {
   const range = useDefaultDateRange();
+  const prefersReducedMotion = useReducedMotion();
 
   const sephoraSent = useSentimentIndex("Sephora", range);
   const sephoraVolume = useMentionVolume("Sephora", range);
@@ -93,52 +94,83 @@ export default function DashboardPage() {
     return last.map((p) => ({ value: p.value }));
   })();
 
+  const containerVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: prefersReducedMotion ? 0 : 0.09,
+        delayChildren: prefersReducedMotion ? 0 : 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 22, scale: 0.98 },
+    show: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: prefersReducedMotion ? 0.2 : 0.4,
+        ease: [0.25, 0.1, 0.25, 1] as const,
+      },
+    },
+  };
+
   return (
     <div className="mx-auto w-full max-w-[1400px]">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
         className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
       >
-        <KPICard
-          title="Indice de Sentiment"
-          value={sephoraSent.data?.score ?? null}
-          trendValue={sentimentTrendValue}
-          icon={<Smile className="size-5" />}
-          sparkline={sentimentSpark}
-          isLoading={!sephoraSent.data && !sephoraSent.error}
-        />
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+          <KPICard
+            title="Indice de Sentiment"
+            value={sephoraSent.data?.score ?? null}
+            trendValue={sentimentTrendValue}
+            icon={<Smile className="size-5" />}
+            sparkline={sentimentSpark}
+            isLoading={!sephoraSent.data && !sephoraSent.error}
+          />
+        </motion.div>
 
-        <KPICard
-          title="Volume"
-          value={sephoraVolume.data?.total ?? null}
-          trendValue={sephoraVolume.data?.deltaPct ?? null}
-          icon={<MessageSquare className="size-5" />}
-          sparkline={volumeSpark}
-          isLoading={!sephoraVolume.data && !sephoraVolume.error}
-        />
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+          <KPICard
+            title="Volume"
+            value={sephoraVolume.data?.total ?? null}
+            trendValue={sephoraVolume.data?.deltaPct ?? null}
+            icon={<MessageSquare className="size-5" />}
+            sparkline={volumeSpark}
+            isLoading={!sephoraVolume.data && !sephoraVolume.error}
+          />
+        </motion.div>
 
-        <KPICard
-          title="Part de voix"
-          value={voiceSharePct}
-          valueSuffix="%"
-          trendValue={voiceShareTrendValue}
-          icon={<PieChart className="size-5" />}
-          sparkline={voiceShareSpark}
-          isLoading={!voice.data && !voice.error}
-        />
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+          <KPICard
+            title="Part de voix"
+            value={voiceSharePct}
+            valueSuffix="%"
+            trendValue={voiceShareTrendValue}
+            icon={<PieChart className="size-5" />}
+            sparkline={voiceShareSpark}
+            isLoading={!voice.data && !voice.error}
+          />
+        </motion.div>
 
-        <KPICard
-          title="Tendance"
-          value={trend.data?.deltaPct == null ? null : Math.round(trend.data.deltaPct * 10) / 10}
-          valueSuffix="%"
-          trend={trend.data?.direction ?? null}
-          trendValue={trend.data?.deltaPct ?? null}
-          icon={<TrendingUp className="size-5" />}
-          sparkline={trendSpark}
-          isLoading={!trend.data && !trend.error}
-        />
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+          <KPICard
+            title="Tendance"
+            value={trend.data?.deltaPct == null ? null : Math.round(trend.data.deltaPct * 10) / 10}
+            valueSuffix="%"
+            trend={trend.data?.direction ?? null}
+            trendValue={trend.data?.deltaPct ?? null}
+            icon={<TrendingUp className="size-5" />}
+            sparkline={trendSpark}
+            isLoading={!trend.data && !trend.error}
+          />
+        </motion.div>
       </motion.div>
 
       <div className="mt-6 space-y-4">

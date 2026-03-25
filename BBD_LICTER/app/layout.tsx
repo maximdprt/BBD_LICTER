@@ -12,6 +12,7 @@ import "@fontsource/jetbrains-mono/latin-600.css";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { BackgroundFX } from "@/components/layout/BackgroundFX";
+import { PageTransition } from "@/components/layout/PageTransition";
 
 export const metadata: Metadata = {
   title: "SEPHORA Intel — Intelligence COMEX",
@@ -33,7 +34,7 @@ export default function RootLayout({
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <TopBar />
-            <main className="min-w-0 flex-1 bg-[#FDFDFD] px-6 pb-10 pt-6">{children}</main>
+            <PageTransition>{children}</PageTransition>
           </div>
         </div>
       </body>

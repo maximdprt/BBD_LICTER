@@ -34,7 +34,7 @@ export function LiveAlertsList({ rows, isLoading, className }: Props) {
     return (
       <div className={cn("space-y-2", className)}>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 animate-pulse rounded-2xl bg-slate-100" />
+          <div key={i} className="skeleton h-20 rounded-2xl" />
         ))}
       </div>
     );

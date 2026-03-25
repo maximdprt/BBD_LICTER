@@ -33,7 +33,16 @@ export function WeeklyTrend({ data, className }: Props) {
               border: "1px solid rgba(0,0,0,0.1)",
             }}
           />
-          <Bar dataKey="value" name="Volume" fill="#000000" radius={[2, 2, 0, 0]} />
+          <Bar
+            dataKey="value"
+            name="Volume"
+            fill="#000000"
+            radius={[2, 2, 0, 0]}
+            isAnimationActive={true}
+            animationDuration={900}
+            animationEasing="ease-out"
+            animationBegin={100}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

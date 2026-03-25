@@ -35,6 +35,10 @@ export function SourceDonutChart({ data, marque }: Props) {
             paddingAngle={3}
             stroke="rgba(255,255,255,1)"
             strokeWidth={2}
+            isAnimationActive={true}
+            animationDuration={1000}
+            animationEasing="ease-out"
+            animationBegin={100}
           >
             {pieData.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />

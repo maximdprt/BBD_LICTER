@@ -12,18 +12,18 @@ export function AlertBanner({ tone, title, description, className }: Props) {
   const styles =
     tone === "danger"
       ? {
-          wrap: "border-[#FF00ED]/30 bg-white text-black",
+          wrap: "alert-banner alert-banner--danger bg-white text-black border-l-4 border-l-[#E05C6B]",
           icon: "text-[#FF00ED]",
           Icon: AlertTriangle,
         }
       : tone === "warning"
         ? {
-            wrap: "border-black/10 bg-white text-black",
+            wrap: "bg-white text-black border-l-4 border-l-black/10",
             icon: "text-black",
             Icon: AlertTriangle,
           }
         : {
-            wrap: "border-black/10 bg-white text-black",
+            wrap: "bg-white text-black border-l-4 border-l-black/10",
             icon: "text-black",
             Icon: Activity,
           };

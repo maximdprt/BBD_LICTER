@@ -39,8 +39,26 @@ export function VoiceShareBarChart({ data }: Props) {
             }}
             labelStyle={{ color: "rgba(0,0,0,0.85)" }}
           />
-          <Bar dataKey="sephora" name="Sephora" fill="#000000" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="nocibe" name="Nocibé" fill="rgba(0,0,0,0.35)" radius={[2, 2, 0, 0]} />
+          <Bar
+            dataKey="sephora"
+            name="Sephora"
+            fill="#000000"
+            radius={[2, 2, 0, 0]}
+            isAnimationActive={true}
+            animationDuration={900}
+            animationEasing="ease-out"
+            animationBegin={100}
+          />
+          <Bar
+            dataKey="nocibe"
+            name="Nocibé"
+            fill="rgba(0,0,0,0.35)"
+            radius={[2, 2, 0, 0]}
+            isAnimationActive={true}
+            animationDuration={900}
+            animationEasing="ease-out"
+            animationBegin={200}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
