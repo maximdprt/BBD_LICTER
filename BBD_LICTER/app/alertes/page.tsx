@@ -59,7 +59,7 @@ export default function AlertesPage() {
           <KPICard
             title="Volume Sephora"
             value={sephoraVolume.data?.total ?? null}
-            deltaPct={sephoraVolume.data?.deltaPct ?? null}
+            trendValue={sephoraVolume.data?.deltaPct ?? null}
             icon={<BellRing className="size-5" />}
             isLoading={!sephoraVolume.data && !sephoraVolume.error}
           />

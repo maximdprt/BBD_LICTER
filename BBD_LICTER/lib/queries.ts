@@ -8,6 +8,7 @@ import {
   subDays,
 } from "date-fns";
 import { getSupabaseClient } from "@/lib/supabase";
+import { generateMockMentions, shouldUseMockFallback } from "@/lib/mock";
 import type {
   AlertItem,
   CompetitorComparison,
@@ -57,6 +58,15 @@ type MentionWhere = Readonly<{
   sentiment?: Sentiment;
 }>;
 
+function mockMentions(range: DateRange, where?: MentionWhere) {
+  const mock = generateMockMentions(range, 1337);
+  return mock.filter((m) => {
+    if (where?.marque && m.marque !== where.marque) return false;
+    if (where?.sentiment && m.sentiment !== where.sentiment) return false;
+    return true;
+  });
+}
+
 async function fetchMentions(
   range: DateRange,
   columns = "id,date,source,texte,note,sentiment,theme,marque,pays,langue",
@@ -68,8 +78,14 @@ async function fetchMentions(
   if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
 
   const { data, error } = await q;
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as MentionRow[];
+  if (error) {
+    if (shouldUseMockFallback()) return mockMentions(range, where) as unknown as MentionRow[];
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as unknown as MentionRow[];
+  if (rows.length === 0 && shouldUseMockFallback()) return mockMentions(range, where);
+  return rows;
 }
 
 async function countMentions(range: DateRange, where?: MentionWhere) {
@@ -83,7 +99,10 @@ async function countMentions(range: DateRange, where?: MentionWhere) {
   if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
 
   const { count, error } = await q;
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (shouldUseMockFallback()) return mockMentions(range, where).length;
+    throw new Error(error.message);
+  }
   return count ?? 0;
 }
 

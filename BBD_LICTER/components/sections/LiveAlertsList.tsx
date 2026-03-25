@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Globe, Instagram, Linkedin, Music2, Twitter } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -31,14 +30,6 @@ type Props = Readonly<{
 }>;
 
 export function LiveAlertsList({ rows, isLoading, className }: Props) {
-  const prevIdsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    prevIdsRef.current = new Set(rows.map((r) => r.id));
-  }, [rows]);
-
-  const isNew = (id: string) => !prevIdsRef.current.has(id);
-
   if (isLoading) {
     return (
       <div className={cn("space-y-2", className)}>
@@ -64,16 +55,16 @@ export function LiveAlertsList({ rows, isLoading, className }: Props) {
 
   return (
     <ul className={cn("flex flex-col gap-2", className)}>
-      {rows.map((r) => {
+      {rows.map((r, idx) => {
         const text = (r.texte ?? "").trim();
         const preview = text.length <= PREVIEW_LENGTH ? text : `${text.slice(0, PREVIEW_LENGTH)}…`;
         return (
           <motion.li
             key={r.id}
             layout
-            initial={{ opacity: isNew(r.id) ? 0 : 1, y: isNew(r.id) ? 8 : 0 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.35, ease: "easeOut", delay: idx * 0.03 }}
             className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-white/90 p-3 shadow-sm backdrop-blur"
           >
             <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50">
