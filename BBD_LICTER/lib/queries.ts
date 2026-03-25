@@ -72,6 +72,9 @@ async function fetchMentions(
   columns = "id,date,source,texte,note,sentiment,theme,marque,pays,langue",
   where?: MentionWhere,
 ) {
+  // Mode démo: on ignore Supabase pour garantir des données dans tous les charts.
+  if (shouldUseMockFallback()) return mockMentions(range, where) as unknown as MentionRow[];
+
   const supabase = getSupabaseClient();
   let q = supabase.from("mentions").select(columns).gte("date", iso(range.from)).lte("date", iso(range.to));
   if (where?.marque) q = q.eq("marque", where.marque);
@@ -89,6 +92,9 @@ async function fetchMentions(
 }
 
 async function countMentions(range: DateRange, where?: MentionWhere) {
+  // Mode démo: on ignore Supabase pour garantir des données dans tous les charts.
+  if (shouldUseMockFallback()) return mockMentions(range, where).length;
+
   const supabase = getSupabaseClient();
   let q = supabase
     .from("mentions")
@@ -443,6 +449,29 @@ export async function getVerbatims(
   pageSize: number,
 ): Promise<Result<{ rows: MentionRow[]; nextPage: number | null }>> {
   try {
+    if (shouldUseMockFallback()) {
+      const base = defaultDateRangeLast6Months();
+      const from = filters.from ?? base.from;
+      const to = filters.to ?? base.to;
+      const range: DateRange = { from, to };
+
+      const mock = mockMentions(range, {
+        marque: filters.marque,
+        sentiment: filters.sentiment,
+      }).filter((m) => {
+        if (filters.source && m.source !== filters.source) return false;
+        if (filters.theme && m.theme !== filters.theme) return false;
+        return true;
+      });
+
+      const ordered = [...mock].sort((a, b) => b.date.localeCompare(a.date));
+      const fromIdx = page * pageSize;
+      const toIdx = fromIdx + pageSize - 1;
+      const rows = ordered.slice(fromIdx, toIdx + 1);
+      const nextPage = rows.length < pageSize ? null : page + 1;
+      return { ok: true, data: { rows, nextPage } };
+    }
+
     const supabase = getSupabaseClient();
     let q = supabase
       .from("mentions")
@@ -475,6 +504,19 @@ export async function getHighSeverityMentions(
   options?: { marque?: Marque; limit?: number },
 ): Promise<Result<MentionRow[]>> {
   try {
+    if (shouldUseMockFallback()) {
+      const limit = Math.min(50, Math.max(1, options?.limit ?? 20));
+      const mock = mockMentions(range, { marque: options?.marque }).filter((m) => {
+        // Heuristique démo: forte gravité = sentiment négatif et note <= 2.5
+        return m.sentiment === "négatif" && (m.note ?? 3) <= 2.5;
+      });
+
+      const rows = [...mock]
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, limit);
+      return { ok: true, data: rows };
+    }
+
     const supabase = getSupabaseClient();
     const limit = Math.min(50, Math.max(1, options?.limit ?? 20));
     let q = supabase

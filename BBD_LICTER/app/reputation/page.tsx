@@ -16,13 +16,34 @@ export default function ReputationPage() {
   const weeks = (overTime.data ?? []).map((p) => p.weekStart);
   const themeNames = (themes.data ?? []).map((t) => t.theme);
 
-  // Placeholder heatmap data (valeurs 0) — l'agrégation fine par thème/semaine sera enrichie si besoin.
-  const heatmapData: HeatmapCell[] = weeks.length && themeNames.length
-    ? themeNames.flatMap((theme) => weeks.map((weekStart) => ({ theme, weekStart, value: 0 })))
-    : [];
+  const hashString = (s: string) =>
+    [...s].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 1000;
 
-  const bubbles =
-    (themes.data ?? []).map((t) => ({ label: t.theme, value: t.count, tone: "neutre" as const }));
+  const themeByName = new Map((themes.data ?? []).map((t) => [t.theme, t.count] as const));
+  const maxThemeCount = Math.max(1, ...(themes.data ?? []).map((t) => t.count));
+
+  // Données fictives mais déterministes:
+  // - valeur heatmap = poids du thème + bruit basé sur (thème, semaine)
+  // - ton bulles = sentiment fictif basé sur (thème)
+  const heatmapData: HeatmapCell[] =
+    weeks.length && themeNames.length
+      ? themeNames.flatMap((theme, themeIdx) =>
+          weeks.map((weekStart, weekIdx) => {
+            const base = (themeByName.get(theme) ?? 0) / maxThemeCount; // 0..1
+            const noise =
+              ((hashString(theme) + hashString(weekStart) + themeIdx * 17 + weekIdx * 13) % 100) / 100; // 0..1
+            const value = Math.max(0, Math.min(1, base * 0.65 + noise * 0.35));
+            return { theme, weekStart, value };
+          }),
+        )
+      : [];
+
+  const bubbles = (themes.data ?? []).map((t, idx) => {
+    const s = (hashString(t.theme) + idx * 19) % 100;
+    const tone: "positif" | "negatif" | "neutre" =
+      s > 62 ? "positif" : s < 32 ? "negatif" : "neutre";
+    return { label: t.theme, value: t.count, tone };
+  });
 
   return (
     <div className="mx-auto w-full max-w-[1400px]">

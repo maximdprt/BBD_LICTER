@@ -85,7 +85,6 @@ function Stars({ count, tone }: { count: number; tone: "rose" | "noir" }) {
         const filled = i < count;
         return (
           <Star
-            // eslint-disable-next-line react/no-array-index-key
             key={i}
             className={cn("size-4", filled ? "" : "text-black/20")}
             strokeWidth={filled ? 2 : 1.5}
@@ -104,9 +103,16 @@ type Props = Readonly<{
   maxHeight?: string;
 }>;
 
-export function CommentScrollPanel({ rows, isLoading, className, maxHeight = "420px" }: Props) {
+export function CommentScrollPanel({
+  rows: _rows,
+  isLoading: _isLoading,
+  className,
+  maxHeight: _maxHeight = "420px",
+}: Props) {
   // La consigne demande des données placeholder réalistes.
-  // `rows/isLoading` restent dans la signature pour compatibilité, mais on ne les utilise pas pour l'instant.
+  // `rows/isLoading/maxHeight` restent dans la signature pour compatibilité, mais on ne les utilise pas pour l'instant.
+  void _rows;
+  void _isLoading;
   const items = FAKE_COMMENTS;
   const duplicated = [...items, ...items];
 
@@ -116,6 +122,7 @@ export function CommentScrollPanel({ rows, isLoading, className, maxHeight = "42
         "relative w-full overflow-hidden rounded-2xl border border-[#00000010] bg-white shadow-sm",
         className,
       )}
+      style={{ maxHeight: _maxHeight }}
     >
       <div className="relative px-5 py-4">
         {/* Fond flouté rose clair/blanc derrière la banderole */}
