@@ -3,7 +3,7 @@
 import { cn } from "@/lib/cn";
 import type { MentionRow } from "@/lib/types";
 import { SentimentBadge } from "@/components/ui/SentimentBadge";
-import { Instagram, Linkedin, MessageSquare, Music2, Timer, Twitter } from "lucide-react";
+import { Instagram, Linkedin, MessageSquare, Music2, Twitter } from "lucide-react";
 
 const PREVIEW_LEN = 120;
 

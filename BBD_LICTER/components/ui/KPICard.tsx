@@ -62,8 +62,9 @@ export function KPICard({
     if (!icon) return null;
     const gradientClasses = "text-transparent bg-clip-text bg-gradient-to-r from-[#000000] to-[#FDC9D3]";
     if (isValidElement(icon)) {
-      return cloneElement(icon as ReactElement, {
-        className: cn((icon as ReactElement).props.className, gradientClasses),
+      const iconEl = icon as ReactElement<{ className?: string }>;
+      return cloneElement(iconEl, {
+        className: cn(iconEl.props.className, gradientClasses),
       });
     }
     return icon;
