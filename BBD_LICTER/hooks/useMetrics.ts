@@ -10,6 +10,7 @@ import type {
   Sentiment,
   SentimentIndex,
   ThemeCount,
+  ThemeInsight,
   VerbatimFilters,
   VoiceSharePoint,
   WeeklySentimentPoint,
@@ -25,10 +26,12 @@ import {
   getSentimentDistribution,
   getSentimentOverTime,
   getTopThemes,
+  getTopThemesInsight,
   getVerbatims,
   getVoiceShareByPlatform,
   getWeeklyVolume,
   getWeeklyTrend,
+  getHighSeverityMentions,
 } from "@/lib/queries";
 
 function unwrap<T>(r: Result<T>): T {
@@ -86,6 +89,13 @@ export function useTopThemes(
   );
 }
 
+export function useTopThemesInsight(marque: Marque, range: DateRange) {
+  return useSWR<ThemeInsight[]>(
+    ["topThemesInsight", marque, range.from.toISOString(), range.to.toISOString()],
+    async () => unwrap(await getTopThemesInsight(marque, range, 5)),
+  );
+}
+
 export function useWeeklyVolume(marque: Marque, range: DateRange) {
   return useSWR<WeeklyPoint[]>(
     ["weeklyVolume", marque, range.from.toISOString(), range.to.toISOString()],
@@ -120,6 +130,13 @@ export function useVerbatims(filters: VerbatimFilters, page: number, pageSize: n
       pageSize,
     ],
     async () => unwrap(await getVerbatims(filters, page, pageSize)),
+  );
+}
+
+export function useLiveAlerts(range: DateRange, options?: { marque?: Marque; limit?: number }) {
+  return useSWR<MentionRow[]>(
+    ["liveAlerts", range.from.toISOString(), range.to.toISOString(), options?.marque ?? null, options?.limit ?? 20],
+    async () => unwrap(await getHighSeverityMentions(range, options)),
   );
 }
 

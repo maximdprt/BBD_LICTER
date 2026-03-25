@@ -53,15 +53,15 @@ function HeatmapRow({
           v <= 0.01
             ? "bg-black/3"
             : v < 0.05
-              ? "bg-accent/10"
+              ? "bg-black/10"
               : v < 0.1
-                ? "bg-accent/20"
+                ? "bg-black/20"
                 : v < 0.2
-                  ? "bg-accent/35"
-                  : "bg-accent/55";
+                  ? "bg-black/35"
+                  : "bg-black/55";
         return (
           <div key={w} className="flex items-center justify-center py-1">
-            <div className={cn("h-5 w-5 rounded-lg ring-1 ring-black/5", bg)} />
+            <div className={cn("h-5 w-5 rounded-sm ring-1 ring-black/10", bg)} />
           </div>
         );
       })}

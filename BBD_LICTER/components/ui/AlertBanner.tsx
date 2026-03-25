@@ -12,19 +12,19 @@ export function AlertBanner({ tone, title, description, className }: Props) {
   const styles =
     tone === "danger"
       ? {
-          wrap: "border-rose-200 bg-rose-50/70 text-rose-900",
-          icon: "text-rose-600",
+          wrap: "border-[#FF00ED]/30 bg-white text-black",
+          icon: "text-[#FF00ED]",
           Icon: AlertTriangle,
         }
       : tone === "warning"
         ? {
-            wrap: "border-amber-200 bg-amber-50/70 text-amber-900",
-            icon: "text-amber-600",
+            wrap: "border-black/10 bg-white text-black",
+            icon: "text-black",
             Icon: AlertTriangle,
           }
         : {
-            wrap: "border-sky-200 bg-sky-50/70 text-sky-900",
-            icon: "text-sky-600",
+            wrap: "border-black/10 bg-white text-black",
+            icon: "text-black",
             Icon: Activity,
           };
 
@@ -33,18 +33,19 @@ export function AlertBanner({ tone, title, description, className }: Props) {
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-3xl border px-4 py-3 shadow-sm backdrop-blur-sm",
+        "relative flex items-start gap-3 overflow-hidden rounded-sm border-[0.5px] px-4 py-3",
         styles.wrap,
         className,
       )}
       role="status"
     >
-      <div className={cn("mt-0.5 grid size-9 place-items-center rounded-2xl bg-white/70", styles.icon)}>
+      <div className="absolute inset-x-0 top-0 h-[2px] sephora-stripes" />
+      <div className={cn("mt-0.5 grid size-9 place-items-center rounded-sm border border-black/10 bg-white", styles.icon)}>
         <Icon className="size-5" />
       </div>
       <div className="min-w-0">
-        <div className="text-sm font-semibold">{title}</div>
-        <div className="mt-0.5 text-sm/5 opacity-80">{description}</div>
+        <div className="text-xs font-bold uppercase tracking-[0.2em]">{title}</div>
+        <div className="mt-1 text-sm/5 text-black/70">{description}</div>
       </div>
     </div>
   );

@@ -1,10 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight, Gauge, MessageSquareText, PieChart } from "lucide-react";
+import { MessageSquare, PieChart, Smile, TrendingUp } from "lucide-react";
 
 import { ChartCard } from "@/components/charts/ChartCard";
-import { SentimentGauge } from "@/components/charts/SentimentGauge";
 import { SentimentLineChart } from "@/components/charts/SentimentLineChart";
 import { SourceDonutChart } from "@/components/charts/SourceDonutChart";
 import { KPICard } from "@/components/ui/KPICard";
@@ -16,11 +15,13 @@ import {
   useMentionVolume,
   useSentimentIndex,
   useSentimentOverTime,
+  useTopThemesInsight,
   useVoiceShareByPlatform,
   useWeeklyTrend,
   useWeeklyVolume,
 } from "@/hooks/useMetrics";
 import { WeeklyTrend as WeeklyTrendChart } from "@/components/sections/WeeklyTrend";
+import { ThemeAnalysis } from "@/components/sections/ThemeAnalysis";
 
 export default function DashboardPage() {
   const range = useDefaultDateRange();
@@ -30,7 +31,9 @@ export default function DashboardPage() {
   const voice = useVoiceShareByPlatform(range);
   const trend = useWeeklyTrend("Sephora");
   const overTime = useSentimentOverTime(range);
-  const weeklyVolume = useWeeklyVolume("Sephora", range);
+  const weeklyVolumeSephora = useWeeklyVolume("Sephora", range);
+  const weeklyVolumeNocibe = useWeeklyVolume("Nocibé", range);
+  const themes = useTopThemesInsight("Sephora", range);
 
   const voiceTotals = (voice.data ?? []).reduce(
     (acc, p) => ({
@@ -49,6 +52,47 @@ export default function DashboardPage() {
     volumeDeltaPct: sephoraVolume.data?.deltaPct ?? null,
   });
 
+  const deltaFromSeries = (values: Array<number | null | undefined>) => {
+    const cleaned = values.filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+    const last = cleaned.at(-1);
+    const prev = cleaned.at(-2);
+    if (last == null || prev == null) return null;
+    if (prev === 0) return null;
+    return ((last - prev) / Math.abs(prev)) * 100;
+  };
+
+  const sentimentSpark = (overTime.data ?? [])
+    .slice(-7)
+    .map((p) => ({ value: p.sephora ?? 0 }));
+  const sentimentTrendValue = deltaFromSeries((overTime.data ?? []).slice(-7).map((p) => p.sephora));
+
+  const volumeSpark = (weeklyVolumeSephora.data ?? []).slice(-7).map((p) => ({ value: p.value }));
+
+  const voiceShareSpark = (() => {
+    const a = weeklyVolumeSephora.data ?? [];
+    const b = weeklyVolumeNocibe.data ?? [];
+    const byWeek = new Map<string, { seph?: number; noci?: number }>();
+    for (const p of a) byWeek.set(p.weekStart, { ...(byWeek.get(p.weekStart) ?? {}), seph: p.value });
+    for (const p of b) byWeek.set(p.weekStart, { ...(byWeek.get(p.weekStart) ?? {}), noci: p.value });
+    return [...byWeek.entries()]
+      .sort(([wa], [wb]) => wa.localeCompare(wb))
+      .slice(-7)
+      .map(([, v]) => {
+        const seph = v.seph ?? 0;
+        const noci = v.noci ?? 0;
+        const denom = seph + noci;
+        return { value: denom === 0 ? 0 : (seph / denom) * 100 };
+      });
+  })();
+  const voiceShareTrendValue =
+    voiceShareSpark.length >= 2 ? voiceShareSpark.at(-1)!.value - voiceShareSpark.at(-2)!.value : null;
+
+  const trendSpark = (() => {
+    const pts = weeklyVolumeSephora.data ?? [];
+    const last = pts.slice(-7);
+    return last.map((p) => ({ value: p.value }));
+  })();
+
   return (
     <div className="mx-auto w-full max-w-[1400px]">
       <motion.div
@@ -58,43 +102,41 @@ export default function DashboardPage() {
         className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
       >
         <KPICard
-          title="Indice de Sentiment — Sephora"
+          title="Indice de Sentiment"
           value={sephoraSent.data?.score ?? null}
-          icon={<Gauge className="size-5" />}
+          trendValue={sentimentTrendValue}
+          icon={<Smile className="size-5" />}
+          sparkline={sentimentSpark}
           isLoading={!sephoraSent.data && !sephoraSent.error}
-        >
-          <div className="flex items-center justify-center">
-            <SentimentGauge value={sephoraSent.data?.score ?? null} size={170} />
-          </div>
-        </KPICard>
+        />
 
         <KPICard
-          title="Volume de mentions (6 mois)"
+          title="Volume"
           value={sephoraVolume.data?.total ?? null}
-          deltaPct={sephoraVolume.data?.deltaPct ?? null}
-          icon={<MessageSquareText className="size-5" />}
+          trendValue={sephoraVolume.data?.deltaPct ?? null}
+          icon={<MessageSquare className="size-5" />}
+          sparkline={volumeSpark}
           isLoading={!sephoraVolume.data && !sephoraVolume.error}
         />
 
         <KPICard
-          title="Part de voix (Sephora vs Nocibé)"
+          title="Part de voix"
           value={voiceSharePct}
           valueSuffix="%"
+          trendValue={voiceShareTrendValue}
           icon={<PieChart className="size-5" />}
+          sparkline={voiceShareSpark}
           isLoading={!voice.data && !voice.error}
         />
 
         <KPICard
-          title="Tendance semaine vs semaine"
+          title="Tendance"
           value={trend.data?.deltaPct == null ? null : Math.round(trend.data.deltaPct * 10) / 10}
           valueSuffix="%"
-          icon={
-            trend.data?.direction === "down" ? (
-              <ArrowDownRight className="size-5" />
-            ) : (
-              <ArrowUpRight className="size-5" />
-            )
-          }
+          trend={trend.data?.direction ?? null}
+          trendValue={trend.data?.deltaPct ?? null}
+          icon={<TrendingUp className="size-5" />}
+          sparkline={trendSpark}
           isLoading={!trend.data && !trend.error}
         />
       </motion.div>
@@ -136,17 +178,31 @@ export default function DashboardPage() {
         </ChartCard>
 
         <ChartCard
-          className="xl:col-span-2"
+          className="xl:col-span-1"
+          title="Analyse Thématique"
+          subtitle="Top 5 thèmes — volume & sentiment dominant"
+          isLoading={!themes.data && !themes.error}
+        >
+          <ThemeAnalysis data={themes.data ?? []} />
+        </ChartCard>
+
+        <ChartCard
+          className="xl:col-span-1"
           title="Tendance semaine par semaine"
           subtitle="Volume Sephora — agrégé par semaine"
-          isLoading={!weeklyVolume.data && !weeklyVolume.error}
+          isLoading={!weeklyVolumeSephora.data && !weeklyVolumeSephora.error}
         >
-          <WeeklyTrendChart data={weeklyVolume.data ?? []} />
+          <WeeklyTrendChart data={weeklyVolumeSephora.data ?? []} />
         </ChartCard>
       </div>
 
       {(sephoraSent.error || sephoraVolume.error || voice.error || overTime.error) && (
-        <div className={cn("mt-6 rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900")}>
+        <div
+          className={cn(
+            "relative mt-6 overflow-hidden rounded-sm border-[0.5px] border-[#FF00ED]/30 bg-white p-4 text-sm text-black",
+          )}
+        >
+          <div className="absolute inset-x-0 top-0 h-[2px] sephora-stripes" />
           Impossible de charger certaines données depuis Supabase. Vérifie la table `mentions`, les droits RLS, et les variables d’environnement.
         </div>
       )}

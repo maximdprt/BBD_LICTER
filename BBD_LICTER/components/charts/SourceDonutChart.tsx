@@ -8,7 +8,7 @@ type Props = Readonly<{
   marque: "Sephora" | "Nocibé";
 }>;
 
-const COLORS = ["#6C3BE4", "#06B6D4", "#A78BFA", "#0EA5E9"];
+const COLORS = ["#000000", "rgba(0,0,0,0.75)", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.35)"];
 
 export function SourceDonutChart({ data, marque }: Props) {
   const pieData = data.map((d) => ({
@@ -22,9 +22,8 @@ export function SourceDonutChart({ data, marque }: Props) {
         <PieChart>
           <Tooltip
             contentStyle={{
-              borderRadius: 16,
-              border: "1px solid rgba(229,231,235,1)",
-              boxShadow: "0 8px 20px rgba(15,15,26,0.06)",
+              borderRadius: 2,
+              border: "1px solid rgba(0,0,0,0.1)",
             }}
           />
           <Pie

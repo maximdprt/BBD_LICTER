@@ -6,6 +6,9 @@ import "@fontsource/bricolage-grotesque/latin-700.css";
 import "@fontsource/bricolage-grotesque/latin-800.css";
 import "@fontsource/dm-sans/latin.css";
 import "@fontsource/dm-sans/latin-500.css";
+import "@fontsource/inter/latin.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
 import "@fontsource/jetbrains-mono/latin.css";
 import "@fontsource/jetbrains-mono/latin-600.css";
 
@@ -33,7 +36,7 @@ export default function RootLayout({
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <TopBar />
-            <main className="min-w-0 flex-1 px-6 pb-10 pt-6">{children}</main>
+            <main className="min-w-0 flex-1 bg-[#FDFDFD] px-6 pb-10 pt-6">{children}</main>
           </div>
         </div>
       </body>

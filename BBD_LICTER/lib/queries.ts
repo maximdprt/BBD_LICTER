@@ -20,6 +20,7 @@ import type {
   SentimentIndex,
   Source,
   ThemeCount,
+  ThemeInsight,
   VerbatimFilters,
   VoiceSharePoint,
   WeeklySentimentPoint,
@@ -194,6 +195,48 @@ export async function getTopThemes(
       .map(([theme, count]) => ({ theme, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
+
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getTopThemesInsight(
+  marque: Marque,
+  range: DateRange,
+  limit = 5,
+): Promise<Result<ThemeInsight[]>> {
+  try {
+    const mentions = await fetchMentions(range, "theme,sentiment,date,marque", { marque });
+    if (!mentions.length) return { ok: true, data: [] };
+
+    const byTheme = new Map<string, { total: number; pos: number; neu: number; neg: number }>();
+    for (const m of mentions) {
+      const t = (m.theme ?? "").trim();
+      if (!t) continue;
+      const agg = byTheme.get(t) ?? { total: 0, pos: 0, neu: 0, neg: 0 };
+      agg.total += 1;
+      if (m.sentiment === "positif") agg.pos += 1;
+      else if (m.sentiment === "neutre") agg.neu += 1;
+      else agg.neg += 1;
+      byTheme.set(t, agg);
+    }
+
+    const totalAll = [...byTheme.values()].reduce((acc, v) => acc + v.total, 0);
+    const out: ThemeInsight[] = [...byTheme.entries()]
+      .map(([theme, v]) => {
+        const dominant: Sentiment =
+          v.pos >= v.neu && v.pos >= v.neg ? "positif" : v.neg >= v.neu && v.neg >= v.pos ? "négatif" : "neutre";
+        return {
+          theme,
+          count: v.total,
+          share: totalAll === 0 ? 0 : v.total / totalAll,
+          dominantSentiment: dominant,
+        };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, Math.max(1, limit));
 
     return { ok: true, data: out };
   } catch (e) {
@@ -402,6 +445,32 @@ export async function getVerbatims(
     const rows = (data ?? []) as MentionRow[];
     const nextPage = rows.length < pageSize ? null : page + 1;
     return { ok: true, data: { rows, nextPage } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/** Avis à forte gravité (gravité = 6 - note, donc gravité > 4 ⇒ note === 1). */
+export async function getHighSeverityMentions(
+  range: DateRange,
+  options?: { marque?: Marque; limit?: number },
+): Promise<Result<MentionRow[]>> {
+  try {
+    const supabase = getSupabaseClient();
+    const limit = Math.min(50, Math.max(1, options?.limit ?? 20));
+    let q = supabase
+      .from("mentions")
+      .select("id,date,source,texte,note,sentiment,theme,marque,pays,langue")
+      .gte("date", iso(range.from))
+      .lte("date", iso(range.to))
+      .eq("note", 1)
+      .order("date", { ascending: false })
+      .limit(limit);
+    if (options?.marque) q = q.eq("marque", options.marque);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as MentionRow[];
+    return { ok: true, data: rows };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
   }

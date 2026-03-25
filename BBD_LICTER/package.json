@@ -11,6 +11,7 @@
   "dependencies": {
     "@fontsource/bricolage-grotesque": "^5.2.10",
     "@fontsource/dm-sans": "^5.2.8",
+    "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@supabase/supabase-js": "^2.99.2",
     "@tsparticles/react": "^3.0.0",

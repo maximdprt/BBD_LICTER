@@ -12,11 +12,11 @@ export function MobileSidebar() {
     <>
       <button
         type="button"
-        className="inline-flex items-center justify-center rounded-2xl border border-border bg-white px-3 py-2 text-sm font-semibold shadow-sm md:hidden"
+        className="inline-flex items-center justify-center rounded-sm border border-black/10 bg-white px-3 py-2 text-sm font-semibold md:hidden"
         onClick={() => setOpen(true)}
         aria-label="Ouvrir le menu"
       >
-        <Menu className="size-5 text-accent" />
+        <Menu className="size-5 text-black" />
       </button>
 
       <AnimatePresence>
@@ -32,7 +32,7 @@ export function MobileSidebar() {
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="absolute left-0 top-0 h-dvh w-[280px] border-r border-border bg-white/85 px-4 py-5 backdrop-blur-sm"
+              className="absolute left-0 top-0 h-dvh w-[280px] border-r border-black/10 bg-white px-4 py-5"
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
@@ -42,7 +42,7 @@ export function MobileSidebar() {
                 <div className="text-xs font-semibold text-text-secondary">Navigation</div>
                 <button
                   type="button"
-                  className="grid size-9 place-items-center rounded-2xl border border-border bg-white shadow-sm"
+                  className="grid size-9 place-items-center rounded-sm border border-black/10 bg-white"
                   onClick={() => setOpen(false)}
                   aria-label="Fermer le menu"
                 >

@@ -63,6 +63,13 @@ export type ThemeCount = Readonly<{
   count: number;
 }>;
 
+export type ThemeInsight = Readonly<{
+  theme: string;
+  count: number;
+  share: number; // 0..1
+  dominantSentiment: Sentiment;
+}>;
+
 export type VerbatimFilters = Readonly<{
   marque?: Marque;
   source?: Source;

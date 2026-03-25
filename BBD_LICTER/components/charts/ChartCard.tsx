@@ -14,13 +14,14 @@ export function ChartCard({ title, subtitle, right, children, isLoading, classNa
   return (
     <section
       className={cn(
-        "rounded-3xl border border-gray-100 bg-white p-5 shadow-sm",
+        "relative overflow-hidden rounded-sm border-[0.5px] border-black/10 bg-white p-5",
         className,
       )}
     >
+      <div className="absolute inset-x-0 top-0 h-[2px] sephora-stripes" />
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-foreground">{title}</div>
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-black">{title}</div>
           {subtitle ? (
             <div className="mt-1 text-xs text-text-secondary">{subtitle}</div>
           ) : null}
@@ -30,7 +31,7 @@ export function ChartCard({ title, subtitle, right, children, isLoading, classNa
 
       <div className="mt-4">
         {isLoading ? (
-          <div className="h-[260px] w-full animate-pulse rounded-2xl bg-black/4" />
+          <div className="h-[260px] w-full animate-pulse rounded-sm bg-black/4" />
         ) : (
           children
         )}

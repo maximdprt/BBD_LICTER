@@ -3,21 +3,25 @@
 import { motion } from "framer-motion";
 import { BellRing, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
+import { subDays } from "date-fns";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { KPICard } from "@/components/ui/KPICard";
 import { VerbatimFeed } from "@/components/sections/VerbatimFeed";
-import { useAlertsSnapshot, useDefaultDateRange, useMentionVolume, useSentimentIndex, useVerbatims } from "@/hooks/useMetrics";
+import { LiveAlertsList } from "@/components/sections/LiveAlertsList";
+import { useAlertsSnapshot, useDefaultDateRange, useLiveAlerts, useMentionVolume, useSentimentIndex, useVerbatims } from "@/hooks/useMetrics";
 import { useRealtimeMentions } from "@/hooks/useRealtime";
 
 export default function AlertesPage() {
   useRealtimeMentions({ enabled: true });
 
   const range = useDefaultDateRange();
+  const last7Days = useMemo(() => ({ from: subDays(new Date(), 7), to: new Date() }), []);
   const sephoraSent = useSentimentIndex("Sephora", range);
   const nocibeSent = useSentimentIndex("Nocibé", range);
   const sephoraVolume = useMentionVolume("Sephora", range);
   const alerts = useAlertsSnapshot();
+  const liveAlerts = useLiveAlerts(last7Days, { limit: 15 });
 
   const feedFilters = useMemo(() => {
     const to = new Date();
@@ -97,6 +101,14 @@ export default function AlertesPage() {
               Aucune alerte détectée sur les dernières 24h.
             </div>
           )}
+        </ChartCard>
+
+        <ChartCard
+          title="Alertes en direct"
+          subtitle="Avis avec gravité &gt; 4 (détectés par l’IA) — 7 derniers jours"
+          isLoading={!liveAlerts.data && !liveAlerts.error}
+        >
+          <LiveAlertsList rows={liveAlerts.data ?? []} isLoading={!liveAlerts.data && !liveAlerts.error} />
         </ChartCard>
 
         <ChartCard

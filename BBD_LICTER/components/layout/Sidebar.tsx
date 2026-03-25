@@ -28,7 +28,7 @@ export function Sidebar() {
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
       className={cn(
-        "sticky top-0 hidden h-dvh w-[240px] shrink-0 border-r border-border bg-white/70 backdrop-blur-sm md:block",
+        "sticky top-0 hidden h-dvh w-[240px] shrink-0 border-r border-black/10 bg-white md:block",
         "px-4 py-5",
       )}
     >
@@ -43,15 +43,21 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
   return (
     <>
       <div className="flex items-center gap-2 px-2">
-        <div className="grid size-9 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-          <ChartNoAxesCombined className="size-5 text-accent" />
-        </div>
-        <div className="leading-tight">
-          <div className="font-display text-[15px] font-extrabold tracking-tight text-accent">
-            SEPHORA Intel
+        <Link
+          href="/"
+          onClick={() => params?.onNavigate?.()}
+          className="flex items-center gap-2 px-0 no-underline"
+        >
+          <div className="grid size-9 place-items-center rounded-sm bg-white ring-1 ring-black/10">
+            <ChartNoAxesCombined className="size-5 text-black" />
           </div>
-          <div className="text-xs text-text-secondary">Brand & Market Intelligence</div>
-        </div>
+          <div className="leading-tight">
+            <div className="font-display text-[15px] font-extrabold tracking-tight text-black">
+              SEPHORA Intel
+            </div>
+            <div className="text-xs text-text-secondary">Brand & Market Intelligence</div>
+          </div>
+        </Link>
       </div>
 
       <nav className="mt-7 space-y-1">
@@ -65,31 +71,36 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
               href={item.href}
               onClick={() => params?.onNavigate?.()}
               className={cn(
-                "group relative flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition",
+                "group relative flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-all duration-300",
                 active
-                  ? "bg-accent/10 text-accent"
-                  : "text-foreground/80 hover:translate-x-1 hover:bg-accent/10 hover:text-accent",
+                  ? "text-black font-bold"
+                  : "text-black/70 hover:bg-black/3 hover:text-black",
               )}
             >
               {active ? (
-                <span className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-accent" />
+                <span className="absolute left-0 top-1 bottom-1 w-1 bg-[#FDC9D3]" />
               ) : null}
-              <Icon className="size-[18px] text-current" />
+              <Icon className="size-[18px] text-current transition-all duration-300 group-hover:drop-shadow-[0_0_12px_rgba(253,201,211,0.55)]" />
               <span className="truncate">{item.label}</span>
+              {active && item.label === "Vue d'ensemble" ? (
+                <span className="pointer-events-none absolute bottom-1 left-3 right-3 h-[2px] bg-[#FDC9D3]" />
+              ) : null}
             </Link>
           );
         })}
       </nav>
 
       <div className="mt-auto px-2 pb-2 pt-6">
-        <div className="rounded-2xl border border-border bg-white/80 px-3 py-3 backdrop-blur-sm">
-          <div className="text-xs font-semibold text-foreground">Données en temps réel</div>
+        <div className="rounded-sm border border-black/10 bg-white px-3 py-3 transition-all duration-300 hover:border-[#FDC9D3]">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black">
+            Données en temps réel
+          </div>
           <div className="mt-1 flex items-center gap-2 text-xs text-text-secondary">
             <span className="relative inline-flex size-2">
-              <span className="absolute inline-flex size-2 animate-ping rounded-full bg-emerald-500/40" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+              <span className="absolute inline-flex size-2 animate-ping rounded-full bg-[#FF00ED]/40" />
+              <span className="relative inline-flex size-2 rounded-full bg-[#FF00ED]" />
             </span>
-            Supabase Realtime actif
+            <span className="font-light text-[#FF00ED]">Système en ligne</span>
           </div>
         </div>
       </div>

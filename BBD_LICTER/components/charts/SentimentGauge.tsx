@@ -19,11 +19,9 @@ export function SentimentGauge({ value, size = 220, className }: Props) {
   const tone =
     value == null
       ? "stroke-gray-200"
-      : v >= 65
-        ? "stroke-emerald-500"
-        : v >= 45
-          ? "stroke-amber-500"
-          : "stroke-rose-500";
+      : v < 45
+        ? "stroke-[color:var(--color-critical)]"
+        : "stroke-black";
 
   return (
     <div
@@ -36,7 +34,7 @@ export function SentimentGauge({ value, size = 220, className }: Props) {
           cy={size / 2}
           r={r}
           fill="transparent"
-          stroke="rgba(15,15,26,0.06)"
+          stroke="rgba(0,0,0,0.08)"
           strokeWidth={stroke}
         />
         <motion.circle

@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { SentimentGauge } from "@/components/charts/SentimentGauge";
-import { SentimentLineChart } from "@/components/charts/SentimentLineChart";
 import { ThemeHeatmap, type HeatmapCell } from "@/components/charts/ThemeHeatmap";
 import { WordCloudBubbles } from "@/components/charts/WordCloudBubbles";
 import { useDefaultDateRange, useSentimentIndex, useSentimentOverTime, useTopThemes } from "@/hooks/useMetrics";
@@ -41,16 +40,6 @@ export default function ReputationPage() {
           <div className="flex justify-center py-2">
             <SentimentGauge value={sentiment.data?.score ?? null} size={260} />
           </div>
-        </ChartCard>
-
-        <ChartCard
-          title="Évolution du sentiment (hebdo)"
-          subtitle="Sephora uniquement"
-          isLoading={!overTime.data && !overTime.error}
-        >
-          <SentimentLineChart
-            data={(overTime.data ?? []).map((p) => ({ ...p, nocibe: null }))}
-          />
         </ChartCard>
 
         <ChartCard
