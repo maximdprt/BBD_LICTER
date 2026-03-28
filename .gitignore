@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Legacy nested app folder (project root is repo root). Safe to delete locally if still present.
+/BBD_LICTER/
+
 # dependencies
 /node_modules
 /.pnp
