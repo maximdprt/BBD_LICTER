@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { useSWRConfig } from "swr";
-import { getSupabaseClient } from "@/lib/supabase";
+import { shouldUseMockFallback } from "@/lib/mock";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export function useRealtimeMentions(params?: { enabled?: boolean }) {
   const enabled = params?.enabled ?? true;
@@ -10,6 +11,7 @@ export function useRealtimeMentions(params?: { enabled?: boolean }) {
 
   useEffect(() => {
     if (!enabled) return;
+    if (shouldUseMockFallback() || !isSupabaseConfigured()) return;
 
     const supabase = getSupabaseClient();
     const channel = supabase
