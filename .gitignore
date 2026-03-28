@@ -3,8 +3,8 @@
 # Legacy nested app folder (project root is repo root). Safe to delete locally if still present.
 /BBD_LICTER/
 
-# dependencies
-/node_modules
+# dependencies (any folder named node_modules — avoids 10k+ accidental commits)
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,8 +16,8 @@
 # testing
 /coverage
 
-# next.js
-/.next/
+# next.js — .next anywhere; export output at repo root only
+.next/
 /out/
 
 # production
