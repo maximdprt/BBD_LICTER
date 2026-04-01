@@ -1,5 +1,4 @@
 import {
-  addMonths,
   endOfDay,
   endOfWeek,
   format,
@@ -8,7 +7,6 @@ import {
   subDays,
 } from "date-fns";
 import { getSupabaseClient } from "@/lib/supabase";
-import { generateMockSignals, shouldUseMockFallback } from "@/lib/mock";
 import {
   brandToMarque,
   displaySignalSource,
@@ -62,7 +60,7 @@ import type {
 
 export function defaultDateRangeLast6Months(now = new Date()): DateRange {
   const to = endOfDay(now);
-  const from = startOfDay(addMonths(now, -6));
+  const from = startOfDay(new Date("2000-01-01T00:00:00.000Z"));
   return { from, to };
 }
 
@@ -114,15 +112,6 @@ function normalizeSignalRow(raw: Record<string, unknown>): SignalRow {
  *   .gte('date', from).lte('date', to) + filtres .eq/.in
  */
 async function fetchSignals(range: DateRange, where?: SignalWhere): Promise<SignalRow[]> {
-  if (shouldUseMockFallback()) {
-    let rows = generateMockSignals(range, 1337);
-    if (where?.brand) rows = rows.filter((r) => r.brand === where.brand);
-    if (where?.sentiment) rows = rows.filter((r) => r.sentiment === where.sentiment);
-    if (where?.sources?.length)
-      rows = rows.filter((r) => where.sources!.includes(r.source));
-    return rows;
-  }
-
   const supabase = getSupabaseClient();
   let q = supabase
     .from("signals")
@@ -138,24 +127,6 @@ async function fetchSignals(range: DateRange, where?: SignalWhere): Promise<Sign
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => normalizeSignalRow(r as Record<string, unknown>));
-}
-
-async function countSignals(range: DateRange, where?: SignalWhere): Promise<number> {
-  if (shouldUseMockFallback()) return fetchSignals(range, where).then((r) => r.length);
-
-  const supabase = getSupabaseClient();
-  let q = supabase
-    .from("signals")
-    .select("id", { count: "exact", head: true })
-    .gte("date", iso(range.from))
-    .lte("date", iso(range.to));
-  if (where?.brand) q = q.eq("brand", where.brand);
-  if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
-  if (where?.sources?.length) q = q.in("source", where.sources);
-
-  const { count, error } = await q;
-  if (error) throw new Error(error.message);
-  return count ?? 0;
 }
 
 /**
@@ -558,23 +529,6 @@ export async function getMentionVolume(marque: Marque, range: DateRange): Promis
   }
 }
 
-function filterSignalsForVerbatims(rows: SignalRow[], filters: VerbatimFilters): SignalRow[] {
-  return rows.filter((m) => {
-    if (filters.marque && brandToMarque(m.brand) !== filters.marque) return false;
-    if (filters.sentiment && sentimentDbToUi(m.sentiment) !== filters.sentiment) return false;
-    if (filters.sources?.length && !filters.sources.includes(m.source)) return false;
-    if (filters.source) {
-      const labels = new Map(SIGNAL_SOURCES_LIST.map((s) => [displaySignalSource(s), s] as const));
-      const slug = labels.get(filters.source) ?? (filters.source as SignalSource);
-      if (SIGNAL_SOURCES_LIST.includes(slug as SignalSource) && m.source !== slug) return false;
-    }
-    if (filters.theme && !signalMatchesTheme(m, filters.theme)) return false;
-    if (filters.from && new Date(m.date) < filters.from) return false;
-    if (filters.to && new Date(m.date) > filters.to) return false;
-    return true;
-  });
-}
-
 const SIGNAL_SOURCES_LIST: SignalSource[] = [
   "trustpilot",
   "google",
@@ -595,20 +549,6 @@ export async function getVerbatims(
   pageSize: number,
 ): Promise<Result<{ rows: MentionRow[]; nextPage: number | null }>> {
   try {
-    if (shouldUseMockFallback()) {
-      const base = defaultDateRangeLast6Months();
-      const from = filters.from ?? base.from;
-      const to = filters.to ?? base.to;
-      const range: DateRange = { from, to };
-      const mock = filterSignalsForVerbatims(generateMockSignals(range, 1337), filters);
-      const ordered = [...mock].sort((a, b) => a.sentiment_score - b.sentiment_score);
-      const fromIdx = page * pageSize;
-      const slice = ordered.slice(fromIdx, fromIdx + pageSize);
-      const rows = slice.map(signalToMentionRow);
-      const nextPage = fromIdx + pageSize < ordered.length ? page + 1 : null;
-      return { ok: true, data: { rows, nextPage } };
-    }
-
     const supabase = getSupabaseClient();
     let q = supabase
       .from("signals")
@@ -1108,7 +1048,6 @@ export async function getLastSignalsForInsight(limit: number): Promise<Result<Si
 
 export async function markAlertResolved(id: string): Promise<Result<boolean>> {
   try {
-    if (shouldUseMockFallback()) return { ok: true, data: true };
     const supabase = getSupabaseClient();
     const { error } = await supabase.from("signals").update({ resolved: true }).eq("id", id);
     if (error) throw new Error(error.message);

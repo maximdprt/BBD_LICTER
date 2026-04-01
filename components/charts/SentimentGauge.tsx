@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 
@@ -13,140 +14,127 @@ type Props = Readonly<{
   className?: string;
   /** Ignoré — conservé pour rétrocompat avec les pages existantes */
   size?: number;
+  href?: string;
 }>;
 
 function zoneLabel(v: number): { label: string; color: string; bg: string } {
-  if (v < 40) return { label: "Critique", color: "#ef4444", bg: "rgba(239,68,68,0.1)" };
-  if (v < 60) return { label: "Modéré", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" };
-  if (v < 75) return { label: "Bon", color: "#16a34a", bg: "rgba(34,197,94,0.1)" };
-  return { label: "Excellent", color: "#15803d", bg: "rgba(34,197,94,0.14)" };
+  if (v < 40) return { label: "Critique", color: "#E24B4A", bg: "rgba(226,75,74,0.1)" };
+  if (v < 70) return { label: "Modéré", color: "#EF9F27", bg: "rgba(239,159,39,0.12)" };
+  return { label: "Excellent", color: "#639922", bg: "rgba(99,153,34,0.14)" };
 }
 
-function ScoreBlock({
-  label,
-  value,
-  isMain,
-  delta,
-}: Readonly<{
-  label: string;
-  value: number | null;
-  isMain?: boolean;
-  delta?: number | null;
-}>) {
-  const zone = value != null ? zoneLabel(value) : null;
-  const score = value != null ? Math.round(value) : null;
+function polarToCartesian(center: number, radius: number, angleDeg: number) {
+  const rad = (angleDeg * Math.PI) / 180;
+  return { x: center + radius * Math.cos(rad), y: center + radius * Math.sin(rad) };
+}
+
+function GaugeDial({ value, competitorValue }: Readonly<{ value: number; competitorValue: number | null }>) {
+  const size = 320;
+  const center = size / 2;
+  const radius = 120;
+  const start = 135;
+  const end = 405;
+  const zone = zoneLabel(value);
+  const valueAngle = start + (value / 100) * (end - start);
+  const nociAngle = competitorValue != null ? start + (competitorValue / 100) * (end - start) : null;
+
+  const drawArc = (a0: number, a1: number, color: string) => {
+    const p0 = polarToCartesian(center, radius, a0);
+    const p1 = polarToCartesian(center, radius, a1);
+    const large = a1 - a0 > 180 ? 1 : 0;
+    return <path d={`M ${p0.x} ${p0.y} A ${radius} ${radius} 0 ${large} 1 ${p1.x} ${p1.y}`} stroke={color} strokeWidth="18" fill="none" strokeLinecap="round" />;
+  };
+
+  const needle = polarToCartesian(center, radius - 20, valueAngle);
+  const nociMarker = nociAngle != null ? polarToCartesian(center, radius, nociAngle) : null;
 
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center rounded-2xl px-8 py-6 transition-all",
-        isMain ? "flex-1" : "flex-1 opacity-80",
-      )}
-      style={{
-        background: isMain ? "var(--bg-card)" : "#f9fafb",
-        border: `1px solid ${isMain ? "var(--comex-border)" : "#e5e7eb"}`,
-        boxShadow: isMain ? "0 2px 12px rgba(0,0,0,0.06)" : "none",
-      }}
-    >
-      <div
-        className="mb-3 text-[11px] font-semibold uppercase tracking-widest"
-        style={{ color: isMain ? "var(--comex-bordeaux)" : "var(--comex-blue)" }}
-      >
-        {label}
-      </div>
-
-      {score == null ? (
-        <div className="font-mono text-5xl font-bold text-gray-300">—</div>
-      ) : (
-        <AnimatedCounter
-          value={score}
-          duration={600}
-          decimals={0}
-          className={cn(
-            "font-mono font-bold leading-none tabular-nums",
-            isMain ? "text-[56px] text-[var(--comex-text,#111827)]" : "text-5xl text-[var(--comex-text,#111827)]",
-          )}
+    <div className="relative mx-auto w-full max-w-[340px]">
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full">
+        {drawArc(start, 243, "#E24B4A")}
+        {drawArc(243, 324, "#EF9F27")}
+        {drawArc(324, end, "#639922")}
+        {nociMarker ? (
+          <>
+            <circle cx={nociMarker.x} cy={nociMarker.y} r="5" fill="#3B82F6" />
+            <text x={nociMarker.x + 10} y={nociMarker.y - 8} fontSize="11" fill="#3B82F6" fontWeight="700">
+              Nocibé {competitorValue}
+            </text>
+          </>
+        ) : null}
+        <motion.line
+          x1={center}
+          y1={center}
+          x2={needle.x}
+          y2={needle.y}
+          stroke="#1f2937"
+          strokeWidth="4"
+          strokeLinecap="round"
+          initial={{ rotate: -120 }}
+          animate={{ rotate: 0 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          style={{ transformOrigin: `${center}px ${center}px` }}
         />
-      )}
-
-      <div className="mt-1 text-xs text-gray-400">/ 100</div>
-
-      {zone ? (
+        <circle cx={center} cy={center} r="9" fill="#111827" />
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <AnimatedCounter
+          value={value}
+          duration={1200}
+          decimals={0}
+          className="font-mono text-[64px] font-bold leading-none text-(--comex-text,#111827)"
+        />
         <span
-          className="mt-3 rounded-full px-3 py-1 text-[11px] font-semibold"
+          className="mt-1 rounded-full px-3 py-1 text-xs font-semibold"
           style={{ background: zone.bg, color: zone.color }}
         >
           {zone.label}
         </span>
-      ) : null}
-
-      {/* Barre de progression visuelle */}
-      {score != null ? (
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: isMain
-                ? "linear-gradient(90deg, var(--comex-bordeaux,#be185d), #9f1239)"
-                : "linear-gradient(90deg, var(--comex-blue,#3b82f6), #1d4ed8)",
-            }}
-            initial={{ width: 0 }}
-            animate={{ width: `${score}%` }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          />
-        </div>
-      ) : null}
-
-      {delta != null ? (
-        <div
-          className="mt-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
-          style={
-            delta > 0
-              ? { background: "rgba(34,197,94,0.12)", color: "#16a34a" }
-              : delta < 0
-                ? { background: "rgba(239,68,68,0.1)", color: "#ef4444" }
-                : { background: "#f3f4f6", color: "#6b7280" }
-          }
-        >
-          {delta > 0 ? <ArrowUpRight className="size-3" /> : delta < 0 ? <ArrowDownRight className="size-3" /> : <Minus className="size-3" />}
-          {delta > 0 ? "+" : ""}
-          {delta.toFixed(0)} pts vs Nocibé
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }
 
-export function SentimentGauge({ value, competitorValue, className }: Props) {
+export function SentimentGauge({ value, competitorValue, className, href = "/reputation" }: Props) {
   const sephScore = value != null ? Math.round(Math.max(0, Math.min(100, value))) : null;
   const nociScore = competitorValue != null ? Math.round(Math.max(0, Math.min(100, competitorValue))) : null;
   const delta = sephScore != null && nociScore != null ? sephScore - nociScore : null;
 
-  return (
-    <div className={cn("w-full", className)}>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <ScoreBlock
-          label="Sephora"
-          value={sephScore}
-          isMain
-          delta={delta}
-        />
-        <ScoreBlock
-          label="Nocibé"
-          value={nociScore}
-          isMain={false}
-        />
-      </div>
+  if (sephScore == null) {
+    return <div className={cn("text-center text-sm text-gray-500", className)}>Pas de score disponible.</div>;
+  }
 
-      {delta != null && (
-        <p className="mt-3 text-center text-xs text-gray-500">
-          {delta > 0
-            ? `Avantage Sephora : +${delta} pts`
-            : delta < 0
-              ? `Avantage Nocibé : +${Math.abs(delta)} pts`
-              : "Égalité parfaite"}
-        </p>
-      )}
+  const Content = (
+    <div className={cn("w-full rounded-2xl border border-(--comex-border) bg-white p-4 shadow-sm", className)}>
+      <GaugeDial value={sephScore} competitorValue={nociScore} />
+      {delta != null ? (
+        <div className="mt-2 flex items-center justify-center">
+          <div
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
+            style={
+              delta > 0
+                ? { background: "rgba(34,197,94,0.12)", color: "#16a34a" }
+                : delta < 0
+                  ? { background: "rgba(239,68,68,0.1)", color: "#ef4444" }
+                  : { background: "#f3f4f6", color: "#6b7280" }
+            }
+          >
+            {delta > 0 ? <ArrowUpRight className="size-3" /> : delta < 0 ? <ArrowDownRight className="size-3" /> : <Minus className="size-3" />}
+            {delta > 0 ? "+" : ""}
+            {delta.toFixed(0)} pts vs Nocibé
+          </div>
+        </div>
+      ) : null}
+      <div className="mt-3 flex items-center justify-center gap-3 text-xs text-gray-600">
+        <span className="inline-flex items-center gap-1.5"><ArrowUpRight className="size-3 text-green-600" />7J : ±0 pts</span>
+        <span className="inline-flex items-center gap-1.5"><Minus className="size-3 text-gray-500" />30J : ±0 pts</span>
+      </div>
     </div>
+  );
+
+  return (
+    <Link href={href} className="block transition-transform hover:-translate-y-0.5">
+      {Content}
+    </Link>
   );
 }

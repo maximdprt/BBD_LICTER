@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useSWRConfig } from "swr";
 import { shouldUseMockFallback } from "@/lib/mock";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -8,8 +8,6 @@ import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 export function useRealtimeMentions(params?: { enabled?: boolean }) {
   const enabled = params?.enabled ?? true;
   const { mutate } = useSWRConfig();
-  const mutateRef = useRef(mutate);
-  mutateRef.current = mutate;
 
   useEffect(() => {
     if (!enabled) return;
@@ -23,7 +21,7 @@ export function useRealtimeMentions(params?: { enabled?: boolean }) {
         { event: "*", schema: "public", table: "signals" },
         () => {
           // Révalidation ciblée par préfixes (sans hardcoder des valeurs dans les composants).
-          void mutateRef.current((key) => {
+          void mutate((key) => {
             if (!Array.isArray(key)) return false;
             const head = key[0];
             return (
@@ -61,6 +59,6 @@ export function useRealtimeMentions(params?: { enabled?: boolean }) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [enabled]);
+  }, [enabled, mutate]);
 }
 

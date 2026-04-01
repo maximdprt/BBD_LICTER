@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
+  Area,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -128,39 +129,59 @@ function findAnnotations(data: WeeklySentimentPoint[]) {
 export function SentimentLineChart({ data, alertWeeks = [] }: Props) {
   const [hideSephora, setHideSephora] = useState(false);
   const [hideNocibe, setHideNocibe] = useState(false);
+  const [windowMonths, setWindowMonths] = useState<1 | 3 | 6>(6);
 
   const alertSet = useMemo(() => new Set(alertWeeks), [alertWeeks]);
+  const filteredData = useMemo(() => {
+    if (!data.length) return [];
+    const points = [...data].sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+    const keep = windowMonths * 5;
+    return points.slice(-keep).map((p) => ({
+      ...p,
+      delta: (p.sephora ?? 0) - (p.nocibe ?? 0),
+      leadUpper: Math.max(p.sephora ?? 0, p.nocibe ?? 0),
+      leadLower: Math.min(p.sephora ?? 0, p.nocibe ?? 0),
+    }));
+  }, [data, windowMonths]);
 
-  // Calcul domaine Y dynamique — serré sur les données réelles
-  const yDomain = useMemo((): [number, number] => {
-    if (!data.length) return [35, 75];
-    const allVals: number[] = [];
-    for (const p of data) {
-      if (typeof p.sephora === "number") allVals.push(p.sephora);
-      if (typeof p.nocibe === "number") allVals.push(p.nocibe);
+  const yDomain: [number, number] = [40, 65];
+
+  const annotations = useMemo(() => findAnnotations(filteredData), [filteredData]);
+
+  const monthTick = (weekStart: string) => {
+    try {
+      return format(parseISO(weekStart), "MMM");
+    } catch {
+      return weekStart;
     }
-    if (!allVals.length) return [35, 75];
-    const min = Math.floor(Math.min(...allVals) - 4);
-    const max = Math.ceil(Math.max(...allVals) + 4);
-    return [Math.max(0, min), Math.min(100, max)];
-  }, [data]);
-
-  const annotations = useMemo(() => findAnnotations(data), [data]);
+  };
 
   return (
     <div className="w-full">
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {[1, 3, 6].map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setWindowMonths(m as 1 | 3 | 6)}
+            className={`rounded-lg px-3 py-1 text-xs font-semibold ${windowMonths === m ? "bg-(--comex-bordeaux) text-white" : "bg-gray-100 text-gray-600"}`}
+          >
+            {m}M
+          </button>
+        ))}
+      </div>
       <div className="h-[300px] w-full min-h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 16, right: 12, left: 0, bottom: 0 }}>
+          <ComposedChart data={filteredData} margin={{ top: 16, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
 
             <XAxis
               dataKey="weekStart"
               tickLine={false}
               axisLine={false}
-              tickFormatter={weekLabel}
+              tickFormatter={monthTick}
               tick={{ fontSize: 11, fontFamily: "DM Sans", fill: "#9ca3af" }}
-              interval="preserveStartEnd"
+              interval="equidistantPreserveStart"
             />
             <YAxis
               domain={yDomain}
@@ -172,8 +193,11 @@ export function SentimentLineChart({ data, alertWeeks = [] }: Props) {
 
             <Tooltip content={<SentimentTooltip />} />
 
+            <Area type="monotone" dataKey="leadUpper" stroke="none" fill="rgba(190,24,93,0.15)" />
+            <Area type="monotone" dataKey="leadLower" stroke="none" fill="white" />
+
             {/* Alertes */}
-            {data.map((p) =>
+            {filteredData.map((p) =>
               alertSet.has(p.weekStart) ? (
                 <ReferenceLine
                   key={`al-${p.weekStart}`}
@@ -181,7 +205,7 @@ export function SentimentLineChart({ data, alertWeeks = [] }: Props) {
                   stroke="#ef4444"
                   strokeDasharray="4 3"
                   strokeWidth={1}
-                  label={{ value: "⚠", position: "top", fill: "#ef4444", fontSize: 10 }}
+                  label={{ value: "Pic crise livraison", position: "insideTopRight", fill: "#ef4444", fontSize: 10 }}
                 />
               ) : null,
             )}

@@ -25,6 +25,8 @@ export default function ReputationPage() {
   const bySource = useSentimentBySourceComparison(range);
   const [verbatimPeriod, setVerbatimPeriod] = useState<"week" | "month" | "all">("week");
   const [modal, setModal] = useState<MentionRow | null>(null);
+  const [page, setPage] = useState(0);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const verbatimRange = useMemo(() => {
     const to = new Date();
@@ -33,7 +35,15 @@ export default function ReputationPage() {
     return range;
   }, [verbatimPeriod, range]);
 
-  const topNeg = useTopNegativeVerbatims(verbatimRange, 5, "Sephora");
+  const topNeg = useTopNegativeVerbatims(verbatimRange, 47, "Sephora");
+  const pagedRows = (topNeg.data ?? []).slice(page * 10, page * 10 + 10);
+
+  const urgency = (score?: number) => {
+    if (score == null) return { label: "—", cls: "bg-gray-100 text-gray-600" };
+    if (score < -0.5) return { label: "🔴 Critique", cls: "bg-red-100 text-red-700" };
+    if (score < -0.3) return { label: "🟠 Élevé", cls: "bg-orange-100 text-orange-700" };
+    return { label: "🟡 Modéré", cls: "bg-amber-100 text-amber-700" };
+  };
 
   return (
     <div id="reputation-top" className="mx-auto w-full max-w-[1400px] scroll-mt-24">
@@ -85,7 +95,7 @@ export default function ReputationPage() {
                 type="button"
                 onClick={() => setVerbatimPeriod(p)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  verbatimPeriod === p ? "bg-[var(--comex-bordeaux)] text-white" : "bg-gray-100 text-gray-600"
+                  verbatimPeriod === p ? "bg-(--comex-bordeaux) text-white" : "bg-gray-100 text-gray-600"
                 }`}
               >
                 {p === "week" ? "Cette semaine" : p === "month" ? "Ce mois" : "Tout (6m)"}
@@ -95,39 +105,61 @@ export default function ReputationPage() {
           {!topNeg.data?.length ? (
             <p className="text-sm text-gray-500">Pas de verbatims pour cette période.</p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-[var(--comex-border)]">
+            <div className="overflow-hidden rounded-xl border border-(--comex-border)">
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
                   <tr>
                     <th className="px-3 py-2">Date</th>
                     <th className="px-3 py-2">Source</th>
                     <th className="px-3 py-2">Thème</th>
+                    <th className="px-3 py-2">Urgence</th>
                     <th className="px-3 py-2">Score</th>
                     <th className="px-3 py-2">Extrait</th>
+                    <th className="px-3 py-2 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {topNeg.data.map((r) => (
+                  {pagedRows.map((r) => (
                     <tr
                       key={r.id}
                       className="cursor-pointer border-t border-gray-100 hover:bg-pink-50/50"
-                      onClick={() => setModal(r)}
                     >
                       <td className="px-3 py-2 whitespace-nowrap text-gray-600">
                         {new Date(r.date).toLocaleDateString("fr-FR")}
                       </td>
                       <td className="px-3 py-2">{r.source}</td>
                       <td className="px-3 py-2 capitalize">{r.theme}</td>
+                      <td className="px-3 py-2">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${urgency(r.sentiment_score).cls}`}>{urgency(r.sentiment_score).label}</span>
+                      </td>
                       <td className="px-3 py-2 font-mono text-red-600">
                         {r.sentiment_score?.toFixed(2) ?? "—"}
                       </td>
-                      <td className="max-w-[200px] truncate px-3 py-2 italic text-gray-600">{r.texte}</td>
+                      <td className="max-w-[320px] px-3 py-2 italic text-gray-600">
+                        <button type="button" className="text-left hover:underline" onClick={() => setExpanded((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                          return next;
+                        })}>
+                          {expanded.has(r.id) ? r.texte : `${(r.texte ?? "").slice(0, 120)}...`}
+                        </button>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button type="button" className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold hover:bg-gray-50" onClick={() => setModal(r)}>Créer alerte</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+            <span>Affichage {Math.min((topNeg.data?.length ?? 0), page * 10 + 1)}-{Math.min((topNeg.data?.length ?? 0), (page + 1) * 10)} sur {topNeg.data?.length ?? 0}</span>
+            <div className="flex gap-2">
+              <button type="button" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))} className="rounded border border-gray-200 px-2 py-1 disabled:opacity-40">Précédent</button>
+              <button type="button" disabled={(page + 1) * 10 >= (topNeg.data?.length ?? 0)} onClick={() => setPage((p) => p + 1)} className="rounded border border-gray-200 px-2 py-1 disabled:opacity-40">Suivant</button>
+            </div>
+          </div>
         </ChartCard>
       </motion.div>
 

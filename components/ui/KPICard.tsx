@@ -115,7 +115,7 @@ export function KPICard({
       }
       whileTap={prefersReducedMotion ? undefined : { scale: 0.995 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className={cn("group transition-shadow duration-200", className)}
+      className={cn("group flex h-full flex-col transition-shadow duration-200", className)}
       style={{
         willChange: "transform",
         background: "var(--bg-card)",
@@ -135,7 +135,7 @@ export function KPICard({
         }}
       />
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex min-h-[130px] items-start justify-between gap-4">
         <div className="min-w-0">
           <div
             className="text-[11px] font-semibold uppercase tracking-widest"
@@ -235,7 +235,9 @@ export function KPICard({
         ) : null}
       </div>
 
-      {children ? <div className="mt-2">{children}</div> : null}
+      <div className="mt-2 h-[112px]">
+        {children ? <div className="h-full">{children}</div> : <div className="h-full" />}
+      </div>
 
       <div className="mt-3 h-[44px]">
         {isLoading ? (

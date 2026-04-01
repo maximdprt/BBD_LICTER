@@ -84,10 +84,7 @@ function templateFor(sentiment: SignalSentiment, rng: Rng) {
 }
 
 export function shouldUseMockFallback(): boolean {
-  const flag = process.env.NEXT_PUBLIC_USE_MOCK_DATA;
-  if (flag === "true") return true;
-  if (flag === "false") return false;
-  return process.env.NODE_ENV !== "production";
+  return false;
 }
 
 /**

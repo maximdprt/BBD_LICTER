@@ -145,7 +145,7 @@ export default function DashboardPage() {
         animate="show"
         className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
       >
-        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
             title="Indice de Sentiment"
             value={sephoraSent.data?.score ?? null}
@@ -160,10 +160,11 @@ export default function DashboardPage() {
               (!spark30.data && !spark30.error) ||
               (!sentimentTrend7d.data && !sentimentTrend7d.error)
             }
+            className="h-full"
           />
         </motion.div>
 
-        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
             title="Volume total de signaux"
             value={sephoraVolume.data?.total ?? null}
@@ -171,10 +172,11 @@ export default function DashboardPage() {
             icon={<MessageSquare className="size-5" />}
             sparkline={volumeSpark}
             isLoading={!sephoraVolume.data && !sephoraVolume.error}
+            className="h-full"
           />
         </motion.div>
 
-        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
             title="Part de voix vs Nocibé"
             value={null}
@@ -183,12 +185,13 @@ export default function DashboardPage() {
             sparkline={voiceShareSpark}
             sparkColor="var(--comex-blue)"
             isLoading={!voice.data && !voice.error}
+            className="h-full"
           >
             <VoiceShareHalfGauge value={voiceSharePct} />
           </KPICard>
         </motion.div>
 
-        <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
+        <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
             title="Tendance sentiment (7j)"
             value={d7 == null || Math.abs(d7) < 0.5 ? null : Math.round(d7 * 10) / 10}
@@ -200,6 +203,7 @@ export default function DashboardPage() {
             icon={<TrendingUp className="size-5" />}
             sparkline={trendSentimentSpark}
             isLoading={!sentimentTrend7d.data && !sentimentTrend7d.error}
+            className="h-full"
           />
         </motion.div>
       </motion.div>

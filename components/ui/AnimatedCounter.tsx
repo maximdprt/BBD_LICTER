@@ -27,8 +27,10 @@ export function AnimatedCounter({
   useEffect(() => {
     if (!isInView) return;
     if (duration <= 0) {
-      setDisplay(Number.isFinite(value) ? value : 0);
-      return;
+      const immediate = requestAnimationFrame(() => {
+        setDisplay(Number.isFinite(value) ? value : 0);
+      });
+      return () => cancelAnimationFrame(immediate);
     }
 
     const start = performance.now();
@@ -46,7 +48,7 @@ export function AnimatedCounter({
 
   return (
     <span ref={ref} className={className ?? "font-mono tabular-nums"}>
-      {display.toLocaleString("fr-FR", { minimumFractionDigits: decimals })}
+      {(duration <= 0 ? value : display).toLocaleString("fr-FR", { minimumFractionDigits: decimals })}
       {suffix}
     </span>
   );
