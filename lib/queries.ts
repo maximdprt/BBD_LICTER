@@ -8,32 +8,57 @@ import {
   subDays,
 } from "date-fns";
 import { getSupabaseClient } from "@/lib/supabase";
-import { generateMockMentions, shouldUseMockFallback } from "@/lib/mock";
+import { generateMockSignals, shouldUseMockFallback } from "@/lib/mock";
+import {
+  brandToMarque,
+  displaySignalSource,
+  explodeThemes,
+  isAlertSignal,
+  marqueToBrand,
+  sentimentDbToUi,
+  sentimentScoreToIndex,
+  sentimentUiToDb,
+  signalMatchesTheme,
+  signalToMentionRow,
+} from "@/lib/metrics";
 import type {
+  AIInsightPayload,
   AlertItem,
+  AlertTableRow,
   CompetitorComparison,
+  CompetitorRadarMetrics,
   DateRange,
+  HeatmapCellData,
   Marque,
   MentionRow,
   MentionVolume,
+  RadarAxisKey,
   Result,
   Sentiment,
-  SentimentIndex,
-  Source,
+  SignalBrand,
+  SignalRow,
+  SignalSentiment,
+  SignalSource,
   ThemeCount,
   ThemeInsight,
+  ThemeToken,
+  TimelinePeak,
   VerbatimFilters,
   VoiceSharePoint,
-  WeeklySentimentPoint,
+  WeakSignalPoint,
   WeeklyPoint,
+  WeeklySentimentPoint,
   WeeklyTrend,
 } from "@/lib/types";
 
-const SENTIMENT_WEIGHT: Record<Sentiment, number> = {
-  positif: 1,
-  neutre: 0.5,
-  négatif: 0,
-};
+/*
+ * Index SQL recommandés (à appliquer sur Supabase quand la table `signals` est en prod) :
+ * create index if not exists signals_date_idx on public.signals (date);
+ * create index if not exists signals_brand_idx on public.signals (brand);
+ * create index if not exists signals_source_idx on public.signals (source);
+ * create index if not exists signals_sentiment_idx on public.signals (sentiment);
+ * create index if not exists signals_themes_gin on public.signals using gin (themes);
+ */
 
 export function defaultDateRangeLast6Months(now = new Date()): DateRange {
   const to = endOfDay(now);
@@ -45,78 +70,100 @@ function iso(d: Date): string {
   return d.toISOString();
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
-
 function weekKey(d: Date): string {
   return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
 }
 
-type MentionWhere = Readonly<{
-  marque?: Marque;
-  sentiment?: Sentiment;
-}>;
-
-function mockMentions(range: DateRange, where?: MentionWhere) {
-  const mock = generateMockMentions(range, 1337);
-  return mock.filter((m) => {
-    if (where?.marque && m.marque !== where.marque) return false;
-    if (where?.sentiment && m.sentiment !== where.sentiment) return false;
-    return true;
-  });
+function dayKey(d: Date): string {
+  return format(d, "yyyy-MM-dd");
 }
 
-async function fetchMentions(
-  range: DateRange,
-  columns = "id,date,source,texte,note,sentiment,theme,marque,pays,langue",
-  where?: MentionWhere,
-) {
-  // Mode démo: on ignore Supabase pour garantir des données dans tous les charts.
-  if (shouldUseMockFallback()) return mockMentions(range, where) as unknown as MentionRow[];
+type SignalWhere = {
+  brand?: SignalBrand;
+  sentiment?: SignalSentiment;
+  sources?: SignalSource[];
+};
 
-  const supabase = getSupabaseClient();
-  let q = supabase.from("mentions").select(columns).gte("date", iso(range.from)).lte("date", iso(range.to));
-  if (where?.marque) q = q.eq("marque", where.marque);
-  if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
+function normalizeSignalRow(raw: Record<string, unknown>): SignalRow {
+  const themesRaw = raw.themes;
+  const themes = Array.isArray(themesRaw)
+    ? (themesRaw as string[]).filter(Boolean)
+    : typeof themesRaw === "string"
+      ? [themesRaw]
+      : [];
+  return {
+    id: String(raw.id),
+    source: raw.source as SignalSource,
+    brand: raw.brand as SignalBrand,
+    date: String(raw.date),
+    raw_text: String(raw.raw_text ?? raw.texte ?? ""),
+    sentiment: raw.sentiment as SignalSentiment,
+    sentiment_score: Number(raw.sentiment_score ?? 0),
+    themes: themes.length ? (themes as SignalRow["themes"]) : ["service"],
+    platform_rating: raw.platform_rating != null ? Number(raw.platform_rating) : null,
+    is_alert: Boolean(raw.is_alert),
+    summary_fr: raw.summary_fr != null ? String(raw.summary_fr) : null,
+    created_at: String(raw.created_at ?? raw.date),
+    resolved: raw.resolved != null ? Boolean(raw.resolved) : false,
+  };
+}
 
-  const { data, error } = await q;
-  if (error) {
-    if (shouldUseMockFallback()) return mockMentions(range, where) as unknown as MentionRow[];
-    throw new Error(error.message);
+/**
+ * Requête Supabase cible :
+ * supabase.from('signals').select('id,source,brand,date,raw_text,sentiment,sentiment_score,themes,platform_rating,is_alert,summary_fr,created_at,resolved')
+ *   .gte('date', from).lte('date', to) + filtres .eq/.in
+ */
+async function fetchSignals(range: DateRange, where?: SignalWhere): Promise<SignalRow[]> {
+  if (shouldUseMockFallback()) {
+    let rows = generateMockSignals(range, 1337);
+    if (where?.brand) rows = rows.filter((r) => r.brand === where.brand);
+    if (where?.sentiment) rows = rows.filter((r) => r.sentiment === where.sentiment);
+    if (where?.sources?.length)
+      rows = rows.filter((r) => where.sources!.includes(r.source));
+    return rows;
   }
-
-  const rows = (data ?? []) as unknown as MentionRow[];
-  if (rows.length === 0 && shouldUseMockFallback()) return mockMentions(range, where);
-  return rows;
-}
-
-async function countMentions(range: DateRange, where?: MentionWhere) {
-  // Mode démo: on ignore Supabase pour garantir des données dans tous les charts.
-  if (shouldUseMockFallback()) return mockMentions(range, where).length;
 
   const supabase = getSupabaseClient();
   let q = supabase
-    .from("mentions")
+    .from("signals")
+    .select(
+      "id,source,brand,date,raw_text,sentiment,sentiment_score,themes,platform_rating,is_alert,summary_fr,created_at,resolved",
+    )
+    .gte("date", iso(range.from))
+    .lte("date", iso(range.to));
+  if (where?.brand) q = q.eq("brand", where.brand);
+  if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
+  if (where?.sources?.length) q = q.in("source", where.sources);
+
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => normalizeSignalRow(r as Record<string, unknown>));
+}
+
+async function countSignals(range: DateRange, where?: SignalWhere): Promise<number> {
+  if (shouldUseMockFallback()) return fetchSignals(range, where).then((r) => r.length);
+
+  const supabase = getSupabaseClient();
+  let q = supabase
+    .from("signals")
     .select("id", { count: "exact", head: true })
     .gte("date", iso(range.from))
     .lte("date", iso(range.to));
-  if (where?.marque) q = q.eq("marque", where.marque);
+  if (where?.brand) q = q.eq("brand", where.brand);
   if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
+  if (where?.sources?.length) q = q.in("source", where.sources);
 
   const { count, error } = await q;
-  if (error) {
-    if (shouldUseMockFallback()) return mockMentions(range, where).length;
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
   return count ?? 0;
 }
 
-export async function getSentimentOverTime(
-  range: DateRange,
-): Promise<Result<WeeklySentimentPoint[]>> {
+/**
+ * Requête : agrégation hebdo — select * puis groupement client (ou RPC SQL group by week, brand).
+ */
+export async function getSentimentOverTime(range: DateRange): Promise<Result<WeeklySentimentPoint[]>> {
   try {
-    const mentions = await fetchMentions(range);
+    const mentions = await fetchSignals(range);
     const byWeek = new Map<
       string,
       { sephoraSum: number; sephoraCount: number; nocibeSum: number; nocibeCount: number }
@@ -127,13 +174,12 @@ export async function getSentimentOverTime(
       const agg =
         byWeek.get(wk) ??
         { sephoraSum: 0, sephoraCount: 0, nocibeSum: 0, nocibeCount: 0 };
-
-      const score = SENTIMENT_WEIGHT[m.sentiment] * (clamp(m.note ?? 3, 1, 5) / 5);
-      if (m.marque === "Sephora") {
-        agg.sephoraSum += score;
+      const idx = sentimentScoreToIndex(m.sentiment_score);
+      if (m.brand === "sephora") {
+        agg.sephoraSum += idx;
         agg.sephoraCount += 1;
       } else {
-        agg.nocibeSum += score;
+        agg.nocibeSum += idx;
         agg.nocibeCount += 1;
       }
       byWeek.set(wk, agg);
@@ -143,8 +189,8 @@ export async function getSentimentOverTime(
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([weekStart, agg]) => ({
         weekStart,
-        sephora: agg.sephoraCount ? Math.round((agg.sephoraSum / agg.sephoraCount) * 100) : null,
-        nocibe: agg.nocibeCount ? Math.round((agg.nocibeSum / agg.nocibeCount) * 100) : null,
+        sephora: agg.sephoraCount ? Math.round(agg.sephoraSum / agg.sephoraCount) : null,
+        nocibe: agg.nocibeCount ? Math.round(agg.nocibeSum / agg.nocibeCount) : null,
       }));
 
     return { ok: true, data: points };
@@ -153,23 +199,72 @@ export async function getSentimentOverTime(
   }
 }
 
-export async function getVoiceShareByPlatform(
+/** Dates de semaines où une alerte est présente (pour marqueurs graphique). */
+export async function getAlertWeekMarkers(
   range: DateRange,
-): Promise<Result<VoiceSharePoint[]>> {
+  brand: Marque = "Sephora",
+): Promise<Result<string[]>> {
   try {
-    const mentions = await fetchMentions(range, "source,marque,date");
-    const sources: Source[] = ["Twitter/X", "Instagram", "TikTok", "LinkedIn"];
+    const rows = await fetchSignals(range, { brand: marqueToBrand(brand) });
+    const weeks = new Set<string>();
+    for (const r of rows) {
+      if (isAlertSignal(r)) weeks.add(weekKey(new Date(r.date)));
+    }
+    return { ok: true, data: [...weeks].sort() };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/**
+ * Requête : from signals, filtre date + brand sephora, bucket journalier, avg(sentiment_score) → indice.
+ */
+export async function getSentimentSparkline30d(marque: Marque): Promise<Result<{ value: number }[]>> {
+  try {
+    const to = new Date();
+    const from = subDays(to, 30);
+    const rows = await fetchSignals({ from, to }, { brand: marqueToBrand(marque) });
+    const byDay = new Map<string, { sum: number; n: number }>();
+    for (const r of rows) {
+      const dk = dayKey(new Date(r.date));
+      const a = byDay.get(dk) ?? { sum: 0, n: 0 };
+      a.sum += sentimentScoreToIndex(r.sentiment_score);
+      a.n += 1;
+      byDay.set(dk, a);
+    }
+    const sorted = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const out = sorted.map(([, v]) => ({ value: v.n ? Math.round(v.sum / v.n) : 0 }));
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/**
+ * Requête : count group by source, brand — pivot Sephora/Nocibé.
+ */
+export async function getVoiceShareByPlatform(range: DateRange): Promise<Result<VoiceSharePoint[]>> {
+  try {
+    const mentions = await fetchSignals(range);
+    const sources: SignalSource[] = [
+      "trustpilot",
+      "google",
+      "tiktok",
+      "instagram",
+      "linkedin",
+      "reddit",
+    ];
     const counts = new Map<string, number>();
 
     for (const m of mentions) {
-      const key = `${m.source}__${m.marque}`;
+      const key = `${m.source}__${m.brand}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
 
     const out: VoiceSharePoint[] = sources.map((source) => ({
-      source,
-      sephora: counts.get(`${source}__Sephora`) ?? 0,
-      nocibe: counts.get(`${source}__Nocibé`) ?? 0,
+      source: displaySignalSource(source),
+      sephora: counts.get(`${source}__sephora`) ?? 0,
+      nocibe: counts.get(`${source}__nocibe`) ?? 0,
     }));
 
     return { ok: true, data: out };
@@ -178,20 +273,45 @@ export async function getVoiceShareByPlatform(
   }
 }
 
-export async function getSentimentIndex(
-  marque: Marque,
-  range: DateRange,
-): Promise<Result<SentimentIndex>> {
+/**
+ * Requête : avg(sentiment_score) filtré brand sur plage → indice 0–100.
+ */
+export async function getSentimentIndex(marque: Marque, range: DateRange): Promise<Result<{ marque: Marque; score: number | null }>> {
   try {
-    const mentions = await fetchMentions(range, "sentiment,note,date,marque", { marque });
-    if (!mentions.length) return { ok: true, data: { marque, score: null } };
+    const rows = await fetchSignals(range, { brand: marqueToBrand(marque) });
+    if (!rows.length) return { ok: true, data: { marque, score: null } };
 
     let sum = 0;
-    for (const m of mentions) {
-      sum += SENTIMENT_WEIGHT[m.sentiment] * (clamp(m.note ?? 3, 1, 5) / 5);
+    for (const m of rows) {
+      sum += sentimentScoreToIndex(m.sentiment_score);
     }
-    const score = Math.round((sum / mentions.length) * 100);
+    const score = Math.round(sum / rows.length);
     return { ok: true, data: { marque, score } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/**
+ * Tendance : moyenne indice 0–100 sur 7 derniers jours vs 7 jours précédents (différence en points d’indice).
+ */
+export async function getSentimentTrend7dPoints(marque: Marque): Promise<Result<{ deltaPoints: number | null; direction: "up" | "down" | "flat" }>> {
+  try {
+    const now = new Date();
+    const last7 = { from: subDays(now, 7), to: now };
+    const prev7 = { from: subDays(now, 14), to: subDays(now, 7) };
+    const [a, b] = await Promise.all([
+      fetchSignals(last7, { brand: marqueToBrand(marque) }),
+      fetchSignals(prev7, { brand: marqueToBrand(marque) }),
+    ]);
+    const avg = (rows: SignalRow[]) =>
+      rows.length ? rows.reduce((s, r) => s + sentimentScoreToIndex(r.sentiment_score), 0) / rows.length : null;
+    const m1 = avg(a);
+    const m0 = avg(b);
+    if (m1 == null || m0 == null) return { ok: true, data: { deltaPoints: null, direction: "flat" } };
+    const deltaPoints = Math.round((m1 - m0) * 10) / 10;
+    const direction = Math.abs(deltaPoints) < 0.5 ? "flat" : deltaPoints > 0 ? "up" : "down";
+    return { ok: true, data: { deltaPoints, direction } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
   }
@@ -203,21 +323,25 @@ export async function getTopThemes(
   range: DateRange,
 ): Promise<Result<ThemeCount[]>> {
   try {
-    const mentions = await fetchMentions(
-      range,
-      "theme,marque,sentiment,date",
-      sentiment === "all" ? { marque } : { marque, sentiment },
-    );
+    const base = await fetchSignals(range, { brand: marqueToBrand(marque) });
+    const rows =
+      sentiment === "all" ? base : base.filter((m) => m.sentiment === sentimentUiToDb(sentiment));
 
-    const counts = new Map<string, number>();
-    for (const m of mentions) {
-      const t = (m.theme ?? "").trim();
-      if (!t) continue;
-      counts.set(t, (counts.get(t) ?? 0) + 1);
+    const counts = new Map<string, { count: number; sumScore: number }>();
+    for (const m of explodeThemes(rows)) {
+      const t = m.theme;
+      const agg = counts.get(t) ?? { count: 0, sumScore: 0 };
+      agg.count += 1;
+      agg.sumScore += m.sentiment_score;
+      counts.set(t, agg);
     }
 
-    const out = [...counts.entries()]
-      .map(([theme, count]) => ({ theme, count }))
+    const out: ThemeCount[] = [...counts.entries()]
+      .map(([theme, v]) => ({
+        theme,
+        count: v.count,
+        avgSentimentScore: Math.round((v.sumScore / v.count) * 1000) / 1000,
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
@@ -233,18 +357,17 @@ export async function getTopThemesInsight(
   limit = 5,
 ): Promise<Result<ThemeInsight[]>> {
   try {
-    const mentions = await fetchMentions(range, "theme,sentiment,date,marque", { marque });
-    if (!mentions.length) return { ok: true, data: [] };
+    const rows = await fetchSignals(range, { brand: marqueToBrand(marque) });
+    if (!rows.length) return { ok: true, data: [] };
 
     const byTheme = new Map<string, { total: number; pos: number; neu: number; neg: number }>();
-    for (const m of mentions) {
-      const t = (m.theme ?? "").trim();
-      if (!t) continue;
+    for (const m of explodeThemes(rows)) {
+      const t = m.theme;
       const agg = byTheme.get(t) ?? { total: 0, pos: 0, neu: 0, neg: 0 };
       agg.total += 1;
-      if (m.sentiment === "positif") agg.pos += 1;
-      else if (m.sentiment === "neutre") agg.neu += 1;
-      else agg.neg += 1;
+      if (m.sentiment === "positive") agg.pos += 1;
+      else if (m.sentiment === "negative") agg.neg += 1;
+      else agg.neu += 1;
       byTheme.set(t, agg);
     }
 
@@ -269,15 +392,12 @@ export async function getTopThemesInsight(
   }
 }
 
-export async function getWeeklyVolume(
-  marque: Marque,
-  range: DateRange,
-): Promise<Result<WeeklyPoint[]>> {
+export async function getWeeklyVolume(marque: Marque, range: DateRange): Promise<Result<WeeklyPoint[]>> {
   try {
-    const mentions = await fetchMentions(range, "date,marque", { marque });
+    const rows = await fetchSignals(range, { brand: marqueToBrand(marque) });
 
     const byWeek = new Map<string, number>();
-    for (const m of mentions) {
+    for (const m of rows) {
       const wk = weekKey(new Date(m.date));
       byWeek.set(wk, (byWeek.get(wk) ?? 0) + 1);
     }
@@ -297,9 +417,9 @@ export async function getSentimentDistribution(
   range: DateRange,
 ): Promise<Result<Record<Sentiment, number>>> {
   try {
-    const mentions = await fetchMentions(range, "sentiment,marque,date", { marque });
+    const rows = await fetchSignals(range, { brand: marqueToBrand(marque) });
     const out: Record<Sentiment, number> = { positif: 0, neutre: 0, négatif: 0 };
-    for (const m of mentions) out[m.sentiment] += 1;
+    for (const m of rows) out[sentimentDbToUi(m.sentiment)] += 1;
     return { ok: true, data: out };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
@@ -318,10 +438,12 @@ export async function getAlertsSnapshot(params?: {
     const last24h: DateRange = { from: subDays(now, 1), to: now };
     const prev24h: DateRange = { from: subDays(now, 2), to: subDays(now, 1) };
 
-    const [negLast, negPrev] = await Promise.all([
-      countMentions(last24h, { marque: marquePrimary, sentiment: "négatif" }),
-      countMentions(prev24h, { marque: marquePrimary, sentiment: "négatif" }),
+    const [rowsLast, rowsPrev] = await Promise.all([
+      fetchSignals(last24h, { brand: marqueToBrand(marquePrimary) }),
+      fetchSignals(prev24h, { brand: marqueToBrand(marquePrimary) }),
     ]);
+    const negLast = rowsLast.filter((r) => r.sentiment === "negative").length;
+    const negPrev = rowsPrev.filter((r) => r.sentiment === "negative").length;
 
     const alerts: AlertItem[] = [];
 
@@ -357,19 +479,15 @@ export async function getAlertsSnapshot(params?: {
       }
     }
 
-    // Thème émergent (heuristique): top thème 24h > 10% du volume
-    const mentions24h = await fetchMentions(last24h, "theme,date,marque", { marque: marquePrimary });
-    if (mentions24h.length >= 30) {
+    if (rowsLast.length >= 30) {
       const counts = new Map<string, number>();
-      for (const m of mentions24h) {
-        const t = (m.theme ?? "").trim();
-        if (!t) continue;
-        counts.set(t, (counts.get(t) ?? 0) + 1);
+      for (const m of explodeThemes(rowsLast)) {
+        counts.set(m.theme, (counts.get(m.theme) ?? 0) + 1);
       }
       const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
       const top = sorted[0];
       if (top) {
-        const share = top[1] / mentions24h.length;
+        const share = top[1] / rowsLast.length;
         if (share > 0.1) {
           alerts.push({
             id: "emerging-theme",
@@ -397,8 +515,8 @@ export async function getWeeklyTrend(marque: Marque): Promise<Result<WeeklyTrend
     const prevWeekEnd = subDays(thisWeekEnd, 7);
 
     const [thisWeek, prevWeek] = await Promise.all([
-      fetchMentions({ from: thisWeekStart, to: thisWeekEnd }, "id,date,marque", { marque }),
-      fetchMentions({ from: prevWeekStart, to: prevWeekEnd }, "id,date,marque", { marque }),
+      fetchSignals({ from: thisWeekStart, to: thisWeekEnd }, { brand: marqueToBrand(marque) }),
+      fetchSignals({ from: prevWeekStart, to: prevWeekEnd }, { brand: marqueToBrand(marque) }),
     ]);
 
     const prev = prevWeek.length;
@@ -417,12 +535,9 @@ export async function getWeeklyTrend(marque: Marque): Promise<Result<WeeklyTrend
   }
 }
 
-export async function getMentionVolume(
-  marque: Marque,
-  range: DateRange,
-): Promise<Result<MentionVolume>> {
+export async function getMentionVolume(marque: Marque, range: DateRange): Promise<Result<MentionVolume>> {
   try {
-    const current = await fetchMentions(range, "id,date,marque", { marque });
+    const current = await fetchSignals(range, { brand: marqueToBrand(marque) });
     const durationDays = Math.max(
       1,
       Math.round((range.to.getTime() - range.from.getTime()) / (24 * 60 * 60 * 1000)),
@@ -431,7 +546,7 @@ export async function getMentionVolume(
       from: subDays(range.from, durationDays),
       to: subDays(range.to, durationDays),
     };
-    const previous = await fetchMentions(prevRange, "id,date,marque", { marque });
+    const previous = await fetchSignals(prevRange, { brand: marqueToBrand(marque) });
 
     const prev = previous.length;
     const curr = current.length;
@@ -443,6 +558,37 @@ export async function getMentionVolume(
   }
 }
 
+function filterSignalsForVerbatims(rows: SignalRow[], filters: VerbatimFilters): SignalRow[] {
+  return rows.filter((m) => {
+    if (filters.marque && brandToMarque(m.brand) !== filters.marque) return false;
+    if (filters.sentiment && sentimentDbToUi(m.sentiment) !== filters.sentiment) return false;
+    if (filters.sources?.length && !filters.sources.includes(m.source)) return false;
+    if (filters.source) {
+      const labels = new Map(SIGNAL_SOURCES_LIST.map((s) => [displaySignalSource(s), s] as const));
+      const slug = labels.get(filters.source) ?? (filters.source as SignalSource);
+      if (SIGNAL_SOURCES_LIST.includes(slug as SignalSource) && m.source !== slug) return false;
+    }
+    if (filters.theme && !signalMatchesTheme(m, filters.theme)) return false;
+    if (filters.from && new Date(m.date) < filters.from) return false;
+    if (filters.to && new Date(m.date) > filters.to) return false;
+    return true;
+  });
+}
+
+const SIGNAL_SOURCES_LIST: SignalSource[] = [
+  "trustpilot",
+  "google",
+  "tiktok",
+  "instagram",
+  "linkedin",
+  "reddit",
+];
+
+/**
+ * Requête paginée :
+ * supabase.from('signals').select(...).order('date',{ascending:false}).range(from,to)
+ * avec .eq sur brand, sentiment, source / .in sources, .contains('themes',[theme])
+ */
 export async function getVerbatims(
   filters: VerbatimFilters,
   page: number,
@@ -454,34 +600,32 @@ export async function getVerbatims(
       const from = filters.from ?? base.from;
       const to = filters.to ?? base.to;
       const range: DateRange = { from, to };
-
-      const mock = mockMentions(range, {
-        marque: filters.marque,
-        sentiment: filters.sentiment,
-      }).filter((m) => {
-        if (filters.source && m.source !== filters.source) return false;
-        if (filters.theme && m.theme !== filters.theme) return false;
-        return true;
-      });
-
-      const ordered = [...mock].sort((a, b) => b.date.localeCompare(a.date));
+      const mock = filterSignalsForVerbatims(generateMockSignals(range, 1337), filters);
+      const ordered = [...mock].sort((a, b) => a.sentiment_score - b.sentiment_score);
       const fromIdx = page * pageSize;
-      const toIdx = fromIdx + pageSize - 1;
-      const rows = ordered.slice(fromIdx, toIdx + 1);
-      const nextPage = rows.length < pageSize ? null : page + 1;
+      const slice = ordered.slice(fromIdx, fromIdx + pageSize);
+      const rows = slice.map(signalToMentionRow);
+      const nextPage = fromIdx + pageSize < ordered.length ? page + 1 : null;
       return { ok: true, data: { rows, nextPage } };
     }
 
     const supabase = getSupabaseClient();
     let q = supabase
-      .from("mentions")
-      .select("id,date,source,texte,note,sentiment,theme,marque,pays,langue")
+      .from("signals")
+      .select(
+        "id,source,brand,date,raw_text,sentiment,sentiment_score,themes,platform_rating,is_alert,summary_fr,created_at,resolved",
+      )
+      .order("sentiment_score", { ascending: true })
       .order("date", { ascending: false });
 
-    if (filters.marque) q = q.eq("marque", filters.marque);
-    if (filters.source) q = q.eq("source", filters.source);
-    if (filters.sentiment) q = q.eq("sentiment", filters.sentiment);
-    if (filters.theme) q = q.eq("theme", filters.theme);
+    if (filters.marque) q = q.eq("brand", marqueToBrand(filters.marque));
+    if (filters.sentiment) q = q.eq("sentiment", sentimentUiToDb(filters.sentiment));
+    if (filters.sources?.length) q = q.in("source", filters.sources);
+    else if (filters.source) {
+      const slug = REVERSE_SOURCE.get(filters.source);
+      if (slug) q = q.eq("source", slug);
+    }
+    if (filters.theme) q = q.contains("themes", [filters.theme.trim().toLowerCase()]);
     if (filters.from) q = q.gte("date", iso(filters.from));
     if (filters.to) q = q.lte("date", iso(filters.to));
 
@@ -490,7 +634,8 @@ export async function getVerbatims(
     const { data, error } = await q.range(fromIdx, toIdx);
     if (error) throw new Error(error.message);
 
-    const rows = (data ?? []) as MentionRow[];
+    const rawRows = (data ?? []).map((r) => normalizeSignalRow(r as Record<string, unknown>));
+    const rows = rawRows.map(signalToMentionRow);
     const nextPage = rows.length < pageSize ? null : page + 1;
     return { ok: true, data: { rows, nextPage } };
   } catch (e) {
@@ -498,48 +643,37 @@ export async function getVerbatims(
   }
 }
 
-/** Avis à forte gravité (gravité = 6 - note, donc gravité > 4 ⇒ note === 1). */
+const REVERSE_SOURCE = new Map(
+  SIGNAL_SOURCES_LIST.map((s) => [displaySignalSource(s), s] as const),
+);
+
 export async function getHighSeverityMentions(
   range: DateRange,
   options?: { marque?: Marque; limit?: number },
 ): Promise<Result<MentionRow[]>> {
   try {
-    if (shouldUseMockFallback()) {
-      const limit = Math.min(50, Math.max(1, options?.limit ?? 20));
-      const mock = mockMentions(range, { marque: options?.marque }).filter((m) => {
-        // Heuristique démo: forte gravité = sentiment négatif et note <= 2.5
-        return m.sentiment === "négatif" && (m.note ?? 3) <= 2.5;
-      });
-
-      const rows = [...mock]
-        .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, limit);
-      return { ok: true, data: rows };
-    }
-
-    const supabase = getSupabaseClient();
+    const where: SignalWhere = {};
+    if (options?.marque) where.brand = marqueToBrand(options.marque);
+    const rows = await fetchSignals(range, where);
     const limit = Math.min(50, Math.max(1, options?.limit ?? 20));
-    let q = supabase
-      .from("mentions")
-      .select("id,date,source,texte,note,sentiment,theme,marque,pays,langue")
-      .gte("date", iso(range.from))
-      .lte("date", iso(range.to))
-      .eq("note", 1)
-      .order("date", { ascending: false })
-      .limit(limit);
-    if (options?.marque) q = q.eq("marque", options.marque);
-    const { data, error } = await q;
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []) as MentionRow[];
-    return { ok: true, data: rows };
+    const filtered = rows
+      .filter((m) => m.sentiment_score < -0.5 || m.sentiment === "negative")
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, limit);
+    return { ok: true, data: filtered.map(signalToMentionRow) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
   }
 }
 
-export async function getCompetitorComparison(
-  range: DateRange,
-): Promise<Result<CompetitorComparison>> {
+function themeSentimentSubset(rows: SignalRow[], theme: ThemeToken): number | null {
+  const sub = rows.filter((r) => r.themes.includes(theme));
+  if (!sub.length) return null;
+  const sum = sub.reduce((a, r) => a + sentimentScoreToIndex(r.sentiment_score), 0);
+  return Math.round(sum / sub.length);
+}
+
+export async function getCompetitorComparison(range: DateRange): Promise<Result<CompetitorComparison>> {
   try {
     const [sephoraIndex, nocibeIndex] = await Promise.all([
       getSentimentIndex("Sephora", range),
@@ -548,23 +682,21 @@ export async function getCompetitorComparison(
     if (!sephoraIndex.ok) throw new Error(sephoraIndex.error);
     if (!nocibeIndex.ok) throw new Error(nocibeIndex.error);
 
-    const mentions = await fetchMentions(range, "marque,note,theme,sentiment,date");
-    const seph = mentions.filter((m) => m.marque === "Sephora");
-    const noci = mentions.filter((m) => m.marque === "Nocibé");
+    const mentions = await fetchSignals(range);
+    const seph = mentions.filter((m) => m.brand === "sephora");
+    const noci = mentions.filter((m) => m.brand === "nocibe");
 
-    const avgNote = (rows: MentionRow[]) => {
+    const avgNote = (rows: SignalRow[]) => {
       if (!rows.length) return null;
-      const sum = rows.reduce((acc, r) => acc + clamp(r.note ?? 3, 1, 5), 0);
+      const sum = rows.reduce((acc, r) => acc + (r.platform_rating ?? (1 + ((r.sentiment_score + 1) / 2) * 4)), 0);
       return Math.round((sum / rows.length) * 100) / 100;
     };
 
-    const topTheme = (rows: MentionRow[], s: Sentiment) => {
+    const topTheme = (rows: SignalRow[], s: SignalSentiment) => {
+      const filtered = explodeThemes(rows.filter((r) => r.sentiment === s));
       const counts = new Map<string, number>();
-      for (const r of rows) {
-        if (r.sentiment !== s) continue;
-        const t = (r.theme ?? "").trim();
-        if (!t) continue;
-        counts.set(t, (counts.get(t) ?? 0) + 1);
+      for (const r of filtered) {
+        counts.set(r.theme, (counts.get(r.theme) ?? 0) + 1);
       }
       const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
       return sorted[0]?.[0] ?? null;
@@ -577,15 +709,19 @@ export async function getCompetitorComparison(
           sentimentIndex: sephoraIndex.data.score,
           mentionVolume: seph.length,
           avgNote: avgNote(seph),
-          topThemePositif: topTheme(seph, "positif"),
-          topThemeNegatif: topTheme(seph, "négatif"),
+          topThemePositif: topTheme(seph, "positive"),
+          topThemeNegatif: topTheme(seph, "negative"),
+          savSentimentIndex: themeSentimentSubset(seph, "SAV"),
+          livraisonSentimentIndex: themeSentimentSubset(seph, "livraison"),
         },
         nocibe: {
           sentimentIndex: nocibeIndex.data.score,
           mentionVolume: noci.length,
           avgNote: avgNote(noci),
-          topThemePositif: topTheme(noci, "positif"),
-          topThemeNegatif: topTheme(noci, "négatif"),
+          topThemePositif: topTheme(noci, "positive"),
+          topThemeNegatif: topTheme(noci, "negative"),
+          savSentimentIndex: themeSentimentSubset(noci, "SAV"),
+          livraisonSentimentIndex: themeSentimentSubset(noci, "livraison"),
         },
       },
     };
@@ -594,12 +730,480 @@ export async function getCompetitorComparison(
   }
 }
 
-export function getAlertFlags(params: {
-  sentimentScore: number | null;
-  volumeDeltaPct: number | null;
-}) {
+export function getAlertFlags(params: { sentimentScore: number | null; volumeDeltaPct: number | null }) {
   const sentimentLow = params.sentimentScore !== null && params.sentimentScore < 40;
   const volumeSpike = params.volumeDeltaPct !== null && params.volumeDeltaPct > 50;
   return { sentimentLow, volumeSpike };
 }
 
+/** Bandeau : signaux critiques 24h (is_alert ou score < -0.6). */
+export async function getCriticalAlerts24hSummary(): Promise<
+  Result<{ count: number; dominantTheme: string; dominantSource: string } | null>
+> {
+  try {
+    const now = new Date();
+    const range: DateRange = { from: subDays(now, 1), to: now };
+    const rows = await fetchSignals(range);
+    const crit = rows.filter((r) => isAlertSignal(r));
+    if (!crit.length) return { ok: true, data: null };
+    const themeCounts = new Map<string, number>();
+    const sourceCounts = new Map<string, number>();
+    for (const r of explodeThemes(crit)) {
+      themeCounts.set(r.theme, (themeCounts.get(r.theme) ?? 0) + 1);
+      sourceCounts.set(r.source, (sourceCounts.get(r.source) ?? 0) + 1);
+    }
+    const domTheme = [...themeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+    const domSourceKey = [...sourceCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const domSource = domSourceKey ? displaySignalSource(domSourceKey as SignalSource) : "—";
+    return { ok: true, data: { count: crit.length, dominantTheme: domTheme, dominantSource: domSource } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/**
+ * Requête : avg(sentiment_score)→indice par source, brand sephora, tri asc.
+ */
+export async function getSentimentBySourceSephora(range: DateRange): Promise<
+  Result<{ source: string; score: number; count: number }[]>
+> {
+  try {
+    const rows = await fetchSignals(range, { brand: "sephora" });
+    const bySrc = new Map<SignalSource, { sum: number; n: number }>();
+    for (const r of rows) {
+      const a = bySrc.get(r.source) ?? { sum: 0, n: 0 };
+      a.sum += sentimentScoreToIndex(r.sentiment_score);
+      a.n += 1;
+      bySrc.set(r.source, a);
+    }
+    const out = [...bySrc.entries()]
+      .map(([src, v]) => ({
+        source: displaySignalSource(src),
+        score: v.n ? Math.round(v.sum / v.n) : 0,
+        count: v.n,
+      }))
+      .sort((a, b) => a.score - b.score);
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getTopNegativeVerbatims(
+  range: DateRange,
+  limit: number,
+  marque: Marque = "Sephora",
+): Promise<Result<MentionRow[]>> {
+  try {
+    const rows = await fetchSignals(range, { brand: marqueToBrand(marque) });
+    const neg = rows
+      .filter((r) => r.sentiment === "negative" || r.sentiment_score < 0)
+      .sort((a, b) => a.sentiment_score - b.sentiment_score)
+      .slice(0, limit);
+    return { ok: true, data: neg.map(signalToMentionRow) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+function normalizeAxis(value: number | null, min: number, max: number): number {
+  if (value == null || max <= min) return 50;
+  return Math.round(Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)));
+}
+
+/**
+ * Agrégation multi-métriques puis normalisation 0–100 pour radar (calcul client ; RPC possible côté SQL).
+ */
+export async function getCompetitorRadarMetrics(range: DateRange): Promise<Result<CompetitorRadarMetrics>> {
+  try {
+    const comp = await getCompetitorComparison(range);
+    if (!comp.ok) throw new Error(comp.error);
+    const { sephora: s, nocibe: n } = comp.data;
+    const rows = await fetchSignals(range);
+    const volSep = s.mentionVolume;
+    const volNoc = n.mentionVolume;
+    const maxVol = Math.max(volSep, volNoc, 1);
+
+    const avgThemeScore = (brand: SignalBrand, theme: ThemeToken) => {
+      const sub = rows.filter((r) => r.brand === brand && r.themes.includes(theme));
+      if (!sub.length) return null;
+      return sub.reduce((a, r) => a + sentimentScoreToIndex(r.sentiment_score), 0) / sub.length;
+    };
+
+    const prixS = avgThemeScore("sephora", "prix");
+    const prixN = avgThemeScore("nocibe", "prix");
+    const fidS = avgThemeScore("sephora", "fidélité");
+    const fidN = avgThemeScore("nocibe", "fidélité");
+
+    const axes: RadarAxisKey[] = ["sentiment", "volume", "livraison", "sav", "prix", "fidelite"];
+    const rawSep: Record<RadarAxisKey, number | null> = {
+      sentiment: s.sentimentIndex,
+      volume: (volSep / maxVol) * 100,
+      livraison: s.livraisonSentimentIndex,
+      sav: s.savSentimentIndex,
+      prix: prixS,
+      fidelite: fidS,
+    };
+    const rawNoc: Record<RadarAxisKey, number | null> = {
+      sentiment: n.sentimentIndex,
+      volume: (volNoc / maxVol) * 100,
+      livraison: n.livraisonSentimentIndex,
+      sav: n.savSentimentIndex,
+      prix: prixN,
+      fidelite: fidN,
+    };
+
+    const mins = Object.fromEntries(axes.map((k) => [k, 0])) as Record<RadarAxisKey, number>;
+    const maxs = Object.fromEntries(axes.map((k) => [k, 100])) as Record<RadarAxisKey, number>;
+
+    const sephora = Object.fromEntries(
+      axes.map((k) => [k, normalizeAxis(rawSep[k], mins[k], maxs[k])]),
+    ) as CompetitorRadarMetrics["sephora"];
+    const nocibe = Object.fromEntries(
+      axes.map((k) => [k, normalizeAxis(rawNoc[k], mins[k], maxs[k])]),
+    ) as CompetitorRadarMetrics["nocibe"];
+
+    return { ok: true, data: { sephora, nocibe } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/**
+ * Heatmap : volume par thème × semaine + sentiment moyen (explosion themes).
+ */
+export async function getThemeWeekHeatmap(range: DateRange, marque: Marque): Promise<Result<HeatmapCellData[]>> {
+  try {
+    const rows = await fetchSignals(range, { brand: marqueToBrand(marque) });
+    const exploded = explodeThemes(rows);
+    const key = (theme: string, week: string) => `${theme}__${week}`;
+    const agg = new Map<string, { count: number; sumScore: number }>();
+    for (const r of exploded) {
+      const wk = weekKey(new Date(r.date));
+      const k = key(r.theme, wk);
+      const a = agg.get(k) ?? { count: 0, sumScore: 0 };
+      a.count += 1;
+      a.sumScore += r.sentiment_score;
+      agg.set(k, a);
+    }
+    let maxCount = 1;
+    for (const v of agg.values()) maxCount = Math.max(maxCount, v.count);
+    const out: HeatmapCellData[] = [...agg.entries()].map(([k, v]) => {
+      const [theme, weekStart] = k.split("__") as [string, string];
+      return {
+        weekStart,
+        theme,
+        count: v.count,
+        avgSentimentScore: Math.round((v.sumScore / v.count) * 1000) / 1000,
+        intensity: v.count / maxCount,
+      };
+    });
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getAlertVelocityWeekly(
+  range: DateRange,
+): Promise<Result<{ weekStart: string; count: number }[]>> {
+  try {
+    const rows = await fetchSignals(range);
+    const alerts = rows.filter((r) => isAlertSignal(r));
+    const byWeek = new Map<string, number>();
+    for (const r of alerts) {
+      const wk = weekKey(new Date(r.date));
+      byWeek.set(wk, (byWeek.get(wk) ?? 0) + 1);
+    }
+    const out = [...byWeek.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([weekStart, count]) => ({ weekStart, count }));
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getWeakSignalsScatter(range: DateRange): Promise<Result<WeakSignalPoint[]>> {
+  try {
+    const rows = await fetchSignals(range, { brand: "sephora" });
+    const exploded = explodeThemes(rows);
+    const byThemeWeek = new Map<string, { count: number; sumScore: number }>();
+    for (const r of exploded) {
+      const wk = weekKey(new Date(r.date));
+      const k = `${r.theme}__${wk}`;
+      const a = byThemeWeek.get(k) ?? { count: 0, sumScore: 0 };
+      a.count += 1;
+      a.sumScore += r.sentiment_score;
+      byThemeWeek.set(k, a);
+    }
+
+    const weeks = [...new Set([...byThemeWeek.keys()].map((k) => k.split("__")[1]))].sort();
+    if (weeks.length < 3) return { ok: true, data: [] };
+
+    const wLast = weeks[weeks.length - 1]!;
+    const wPrev = weeks[weeks.length - 2]!;
+    const wPrev2 = weeks[weeks.length - 3]!;
+
+    const themeSet = new Set(exploded.map((r) => r.theme));
+    const out: WeakSignalPoint[] = [];
+
+    for (const theme of themeSet) {
+      const getVol = (w: string) => byThemeWeek.get(`${theme}__${w}`)?.count ?? 0;
+      const getAvg = (w: string) => {
+        const a = byThemeWeek.get(`${theme}__${w}`);
+        return a && a.count ? a.sumScore / a.count : 0;
+      };
+
+      const v1 = getVol(wLast);
+      const v0 = getVol(wPrev);
+      const vPrev2 = getVol(wPrev2);
+      const volGrowth =
+        vPrev2 > 0 ? ((v0 + v1) / 2 / vPrev2 - 1) * 100 : v1 + v0 > 0 ? 50 : 0;
+      const sentDelta = getAvg(wLast) - getAvg(wPrev2);
+      if (volGrowth > 20 && sentDelta < -0.15) {
+        out.push({ theme, volumeGrowth: Math.round(volGrowth * 10) / 10, sentimentDelta: Math.round(sentDelta * 1000) / 1000 });
+      }
+    }
+
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getAlertTableRows(range: DateRange): Promise<Result<AlertTableRow[]>> {
+  try {
+    const rows = await fetchSignals(range);
+    const alerts = rows
+      .filter((r) => isAlertSignal(r))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map((r) => {
+        const theme = r.themes[0] ?? "—";
+        return {
+          id: r.id,
+          date: r.date,
+          source: displaySignalSource(r.source),
+          theme,
+          summary: r.summary_fr ?? r.raw_text.slice(0, 140),
+          score: r.sentiment_score,
+          status: (r.resolved ? "resolved" : "active") as "active" | "resolved",
+          raw_text: r.raw_text,
+        } satisfies AlertTableRow;
+      });
+    return { ok: true, data: alerts };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getActiveAlertsCount24h(): Promise<Result<number>> {
+  try {
+    const now = new Date();
+    const range: DateRange = { from: subDays(now, 1), to: now };
+    const rows = await fetchSignals(range);
+    return { ok: true, data: rows.filter((r) => isAlertSignal(r) && !r.resolved).length };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getTimelinePeaks(range: DateRange): Promise<Result<TimelinePeak[]>> {
+  try {
+    const rows = await fetchSignals(range);
+    const byWeekBrand = new Map<string, { n: number; themes: string[] }>();
+    for (const r of rows) {
+      const wk = weekKey(new Date(r.date));
+      const k = `${wk}__${r.brand}`;
+      const a = byWeekBrand.get(k) ?? { n: 0, themes: [] as string[] };
+      a.n += 1;
+      a.themes.push(...r.themes);
+      byWeekBrand.set(k, a);
+    }
+    const peaks: TimelinePeak[] = [];
+    for (const [key, v] of byWeekBrand.entries()) {
+      const [weekStart, brand] = key.split("__") as [string, SignalBrand];
+      const counts = new Map<string, number>();
+      for (const t of v.themes) counts.set(t, (counts.get(t) ?? 0) + 1);
+      const dom = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      peaks.push({
+        weekStart,
+        brand: brandToMarque(brand),
+        volume: v.n,
+        dominantTheme: dom,
+      });
+    }
+    peaks.sort((a, b) => b.volume - a.volume);
+    return { ok: true, data: peaks.slice(0, 40) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getNegativeVerbatimTexts(range: DateRange, marque: Marque): Promise<Result<string[]>> {
+  try {
+    const rows = await fetchSignals(range, { brand: marqueToBrand(marque) });
+    const texts = rows.filter((r) => r.sentiment === "negative").map((r) => r.raw_text);
+    return { ok: true, data: texts };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getLastSignalsForInsight(limit: number): Promise<Result<SignalRow[]>> {
+  try {
+    const range = defaultDateRangeLast6Months();
+    const rows = await fetchSignals(range, { brand: "sephora" });
+    const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
+    return { ok: true, data: sorted };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function markAlertResolved(id: string): Promise<Result<boolean>> {
+  try {
+    if (shouldUseMockFallback()) return { ok: true, data: true };
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.from("signals").update({ resolved: true }).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true, data: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/**
+ * Requête : même filtre que les verbatims — agrégations cohérentes sur toute la page Expérience.
+ * Supabase cible : mêmes clauses .eq / .in / .contains / plage date que getVerbatims, sans pagination.
+ */
+export async function fetchFilteredSignalsForExperience(filters: VerbatimFilters): Promise<SignalRow[]> {
+  const base = defaultDateRangeLast6Months();
+  const range: DateRange = {
+    from: startOfDay(filters.from ?? base.from),
+    to: endOfDay(filters.to ?? base.to),
+  };
+  let rows = await fetchSignals(range, {
+    brand: marqueToBrand(filters.marque ?? "Sephora"),
+    sentiment: filters.sentiment ? sentimentUiToDb(filters.sentiment) : undefined,
+    sources: filters.sources?.length ? filters.sources : undefined,
+  });
+  if (filters.source) {
+    const slug = REVERSE_SOURCE.get(filters.source);
+    if (slug) rows = rows.filter((m) => m.source === slug);
+  }
+  if (filters.theme?.trim()) {
+    const th = filters.theme.trim();
+    rows = rows.filter((m) => signalMatchesTheme(m, th));
+  }
+  return rows;
+}
+
+export async function getSentimentDistributionFiltered(
+  filters: VerbatimFilters,
+): Promise<Result<Record<Sentiment, number>>> {
+  try {
+    const rows = await fetchFilteredSignalsForExperience(filters);
+    const out: Record<Sentiment, number> = { positif: 0, neutre: 0, négatif: 0 };
+    for (const m of rows) out[sentimentDbToUi(m.sentiment)] += 1;
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getTopThemesFiltered(filters: VerbatimFilters, limit = 10): Promise<Result<ThemeCount[]>> {
+  try {
+    const rows = await fetchFilteredSignalsForExperience(filters);
+    const counts = new Map<string, { count: number; sumScore: number }>();
+    for (const m of explodeThemes(rows)) {
+      const t = m.theme;
+      const agg = counts.get(t) ?? { count: 0, sumScore: 0 };
+      agg.count += 1;
+      agg.sumScore += m.sentiment_score;
+      counts.set(t, agg);
+    }
+    const out: ThemeCount[] = [...counts.entries()]
+      .map(([theme, v]) => ({
+        theme,
+        count: v.count,
+        avgSentimentScore: Math.round((v.sumScore / v.count) * 1000) / 1000,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export async function getNegativeWordFrequencies(
+  filters: VerbatimFilters,
+  topN = 40,
+): Promise<Result<{ word: string; count: number }[]>> {
+  try {
+    const rows = await fetchFilteredSignalsForExperience(filters);
+    const STOP = new Set([
+      "les",
+      "des",
+      "une",
+      "pour",
+      "dans",
+      "est",
+      "pas",
+      "que",
+      "plus",
+      "sur",
+      "avec",
+      "très",
+      "mais",
+      "du",
+      "de",
+      "la",
+      "le",
+      "un",
+      "et",
+      "à",
+      "au",
+      "en",
+      "ce",
+      "se",
+      "qui",
+      "par",
+      "son",
+      "sa",
+      "mes",
+      "mon",
+    ]);
+    const freq = new Map<string, number>();
+    for (const r of rows) {
+      if (r.sentiment !== "negative") continue;
+      const words = r.raw_text
+        .toLowerCase()
+        .replace(/[^a-zàâäéèêëïîôùûç'\s]/gi, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 3 && !STOP.has(w));
+      for (const w of words) freq.set(w, (freq.get(w) ?? 0) + 1);
+    }
+    const out = [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topN)
+      .map(([word, count]) => ({ word, count }));
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+export function buildStaticInsightFallback(): AIInsightPayload {
+  return {
+    insight:
+      "Sephora maintient son leadership sur le sentiment grâce à l’accueil en magasin ; surveiller les pics négatifs sur la livraison lors des semaines à forte charge.",
+    recommendations: [
+      "Renforcer la communication proactive sur les délais dès J+2.",
+      "Prioriser le SAV sur les thèmes livraison et stock.",
+      "Capitaliser sur les retours positifs magasin dans les campagnes CRM.",
+    ],
+    updatedAt: new Date().toISOString(),
+  };
+}

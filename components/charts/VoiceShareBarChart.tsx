@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { VoiceSharePoint } from "@/lib/types";
 
 type Props = Readonly<{
@@ -16,7 +9,7 @@ type Props = Readonly<{
 
 export function VoiceShareBarChart({ data }: Props) {
   return (
-    <div className="h-[280px] w-full" style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-card)" }}>
+    <div className="h-[300px] w-full rounded-2xl bg-gray-50">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barCategoryGap="28%" barGap={4}>
           <XAxis
@@ -46,7 +39,7 @@ export function VoiceShareBarChart({ data }: Props) {
           <Bar
             dataKey="sephora"
             name="Sephora"
-            fill="#C4637A"
+            fill="var(--comex-bordeaux, #be185d)"
             radius={[6, 6, 0, 0]}
             isAnimationActive={true}
             animationDuration={900}
@@ -56,7 +49,7 @@ export function VoiceShareBarChart({ data }: Props) {
           <Bar
             dataKey="nocibe"
             name="Nocibé"
-            fill="#6B8FB5"
+            fill="var(--comex-blue, #3b82f6)"
             radius={[6, 6, 0, 0]}
             isAnimationActive={true}
             animationDuration={1100}
@@ -65,6 +58,18 @@ export function VoiceShareBarChart({ data }: Props) {
           />
         </BarChart>
       </ResponsiveContainer>
+      <div className="mt-3 grid gap-1 text-center text-[11px] text-gray-600 sm:grid-cols-2 lg:grid-cols-3">
+        {data.map((d) => {
+          const t = d.sephora + d.nocibe;
+          const ps = t === 0 ? 0 : Math.round((d.sephora / t) * 100);
+          const pn = t === 0 ? 0 : Math.round((d.nocibe / t) * 100);
+          return (
+            <div key={d.source}>
+              <span className="font-medium text-gray-800">{d.source}</span> — Sephora {ps}% · Nocibé {pn}%
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

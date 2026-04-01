@@ -2,10 +2,20 @@
 
 import { motion } from "framer-motion";
 import { ChartCard } from "@/components/charts/ChartCard";
+import { CompetitorRadarChart } from "@/components/charts/CompetitorRadarChart";
 import { SentimentLineChart } from "@/components/charts/SentimentLineChart";
 import { VoiceShareBarChart } from "@/components/charts/VoiceShareBarChart";
 import { CompetitorMatrix } from "@/components/sections/CompetitorMatrix";
-import { useCompetitorComparison, useDefaultDateRange, useSentimentOverTime, useVoiceShareByPlatform } from "@/hooks/useMetrics";
+import { CompetitorTimeline } from "@/components/charts/CompetitorTimeline";
+import {
+  useAlertWeekMarkers,
+  useCompetitorComparison,
+  useCompetitorRadarMetrics,
+  useDefaultDateRange,
+  useSentimentOverTime,
+  useTimelinePeaks,
+  useVoiceShareByPlatform,
+} from "@/hooks/useMetrics";
 
 function buildInsight(params: {
   sephoraSent: number | null;
@@ -20,7 +30,7 @@ function buildInsight(params: {
     else lines.push("Sephora et Nocibé sont au coude-à-coude en sentiment.");
   }
   if (params.sephoraVol !== params.nocibeVol) {
-    lines.push(params.sephoraVol > params.nocibeVol ? "Sephora domine le volume de mentions." : "Nocibé génère plus de mentions.");
+    lines.push(params.sephoraVol > params.nocibeVol ? "Sephora domine le volume de signaux." : "Nocibé génère plus de signaux.");
   }
   return lines.length ? lines.join(" ") : "Insight indisponible (données insuffisantes).";
 }
@@ -30,6 +40,19 @@ export default function ConcurrencePage() {
   const voice = useVoiceShareByPlatform(range);
   const comparison = useCompetitorComparison(range);
   const overTime = useSentimentOverTime(range);
+  const radar = useCompetitorRadarMetrics(range);
+  const peaks = useTimelinePeaks(range);
+  const alertWeeks = useAlertWeekMarkers(range, "Sephora");
+
+  const voiceDomination = (() => {
+    const rows = voice.data ?? [];
+    let n = 0;
+    for (const p of rows) {
+      const t = p.sephora + p.nocibe;
+      if (t > 0 && p.sephora >= p.nocibe) n += 1;
+    }
+    return { n, total: rows.length };
+  })();
 
   const insight = buildInsight({
     sephoraSent: comparison.data?.sephora.sentimentIndex ?? null,
@@ -51,7 +74,20 @@ export default function ConcurrencePage() {
           subtitle="Comparatif Sephora vs Nocibé"
           isLoading={!voice.data && !voice.error}
         >
+          {voiceDomination.total > 0 ? (
+            <p className="mb-2 text-center text-sm font-semibold text-[var(--comex-text)]">
+              Sephora domine sur {voiceDomination.n}/{voiceDomination.total} plateformes
+            </p>
+          ) : null}
           <VoiceShareBarChart data={voice.data ?? []} />
+        </ChartCard>
+
+        <ChartCard
+          title="Radar concurrentiel"
+          subtitle="6 axes normalisés 0–100 — impact jury"
+          isLoading={!radar.data && !radar.error}
+        >
+          <CompetitorRadarChart data={radar.data ?? null} isLoading={!radar.data && !radar.error} />
         </ChartCard>
 
         <ChartCard
@@ -63,19 +99,26 @@ export default function ConcurrencePage() {
         </ChartCard>
 
         <ChartCard
+          title="Timeline des pics de volume"
+          subtitle="6 mois — quand chaque marque a surperformé"
+          isLoading={!peaks.data && !peaks.error}
+        >
+          <CompetitorTimeline peaks={peaks.data ?? []} />
+        </ChartCard>
+
+        <ChartCard
           title="Sentiment croisé (6 mois)"
           subtitle="Évolution hebdomadaire"
           isLoading={!overTime.data && !overTime.error}
         >
-          <SentimentLineChart data={overTime.data ?? []} />
+          <SentimentLineChart data={overTime.data ?? []} alertWeeks={alertWeeks.data ?? []} />
         </ChartCard>
 
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="text-sm font-semibold text-foreground">Insight (automatique)</div>
-          <div className="mt-2 text-sm leading-6 text-foreground/80">{insight}</div>
+        <div className="rounded-2xl border border-[var(--comex-border)] bg-white p-6 shadow-sm">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Insight (automatique)</div>
+          <div className="mt-2 text-sm leading-relaxed text-gray-700">{insight}</div>
         </div>
       </motion.div>
     </div>
   );
 }
-

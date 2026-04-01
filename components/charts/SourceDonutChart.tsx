@@ -9,35 +9,32 @@ type Props = Readonly<{
   marque: "Sephora" | "Nocibé";
 }>;
 
+const SOURCE_COLORS: Record<string, string> = {
+  Trustpilot: "#00b67a",
+  Google: "#4285F4",
+  TikTok: "#000000",
+  Instagram: "#E1306C",
+  LinkedIn: "#0A66C2",
+  Reddit: "#FF4500",
+};
+
 export function SourceDonutChart({ data, marque }: Props) {
-  const valueBySource = new Map<string, number>();
-  for (const d of data) {
-    valueBySource.set(d.source, marque === "Sephora" ? d.sephora : d.nocibe);
-  }
-
-  const ordered = [
-    { source: "Twitter/X", color: "#1DA1F2" },
-    { source: "Instagram", color: "#E1306C" },
-    { source: "TikTok", color: "#2D2D2D" },
-    { source: "LinkedIn", color: "#0A66C2" },
-  ] as const;
-
-  const pieData = ordered.map((o) => ({
-    name: o.source,
-    value: valueBySource.get(o.source) ?? 0,
-    color: o.color,
+  const pieData = data.map((d) => ({
+    name: d.source,
+    value: marque === "Sephora" ? d.sephora : d.nocibe,
+    color: SOURCE_COLORS[d.source] ?? "#9ca3af",
   }));
 
   const total = pieData.reduce((acc, p) => acc + p.value, 0);
 
   return (
-    <div className="relative h-[280px] w-full">
+    <div className="relative h-[280px] w-full min-h-[260px]">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Tooltip
             contentStyle={{
               borderRadius: 12,
-              border: "1px solid #EDE8E6",
+              border: "1px solid var(--comex-border)",
               background: "#FFFFFF",
               boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
               padding: 12,
@@ -54,9 +51,8 @@ export function SourceDonutChart({ data, marque }: Props) {
             stroke="rgba(255,255,255,1)"
             strokeWidth={2}
             isAnimationActive={true}
-            animationDuration={1000}
+            animationDuration={600}
             animationEasing="ease-out"
-            animationBegin={100}
           >
             {pieData.map((p) => (
               <Cell key={p.name} fill={p.color} />
@@ -65,51 +61,35 @@ export function SourceDonutChart({ data, marque }: Props) {
         </PieChart>
       </ResponsiveContainer>
 
-      {/* Label central donut */}
       <div
         className="pointer-events-none absolute inset-0 grid place-items-center"
         style={{ transform: "translateY(6px)" }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+        <div className="flex flex-col items-center gap-0.5">
           <AnimatedCounter
             value={total}
-            duration={1400}
+            duration={600}
             decimals={0}
-            className="font-mono text-[26px] font-medium text-[var(--text-primary)]"
+            className="font-mono text-[26px] font-medium text-[var(--comex-text)]"
           />
-          <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-muted)" }}>
-            mentions
-          </div>
+          <div className="text-[11px] text-gray-500">signaux</div>
         </div>
       </div>
 
-      {/* Legend 2x2 */}
       <div
-        className="absolute bottom-2 left-0 right-0"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: 8,
-          padding: "0 16px",
-          fontFamily: "DM Sans",
-        }}
+        className="absolute bottom-2 left-0 right-0 grid grid-cols-2 gap-2 px-4"
+        style={{ fontFamily: "DM Sans" }}
       >
-        {pieData.map((p) => {
-          return (
-            <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 999, background: p.color, display: "inline-block" }} />
-              <span style={{ fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {p.name}
-              </span>
-              <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
-                {p.value}
-              </span>
-              <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>%</span>
-            </div>
-          );
-        })}
+        {pieData.map((p) => (
+          <div key={p.name} className="flex items-center gap-2 text-xs">
+            <span className="size-2 shrink-0 rounded-full" style={{ background: p.color }} />
+            <span className="truncate text-gray-600">{p.name}</span>
+            <span className="ml-auto font-semibold tabular-nums text-gray-900">
+              {total ? Math.round((p.value / total) * 100) : 0}% — {p.value}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-

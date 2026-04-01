@@ -2,8 +2,7 @@
 
 import type { ReactElement, ReactNode } from "react";
 import { cloneElement, isValidElement } from "react";
-import { useId } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -13,18 +12,36 @@ export type SparkPoint = Readonly<{
   value: number;
 }>;
 
+export type SentimentHealthZone = "critical" | "moderate" | "excellent";
+
 type Props = Readonly<{
   title: string;
   value: number | string | null;
   valueSuffix?: string;
   trend?: "up" | "down" | "flat" | null;
   trendValue?: number | null;
+  /** Libellé trend (remplace le format par défaut). */
+  trendLabelOverride?: string | null;
+  /** Par défaut % ; `points` pour delta d’indice 0–100. */
+  trendUnit?: "percent" | "points";
   icon?: ReactNode;
   sparkline?: SparkPoint[];
+  sparkColor?: string;
   children?: ReactNode;
   isLoading?: boolean;
   className?: string;
+  /** Badge seuils sentiment : &lt;40 rouge, 40–60 orange, &gt;60 vert */
+  sentimentHealth?: SentimentHealthZone | null;
 }>;
+
+function healthBadge(zone: SentimentHealthZone) {
+  const map = {
+    critical: { label: "Critique", bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
+    moderate: { label: "Modéré", bg: "rgba(234,179,8,0.15)", color: "#ca8a04" },
+    excellent: { label: "Excellent", bg: "rgba(34,197,94,0.12)", color: "#22c55e" },
+  } as const;
+  return map[zone];
+}
 
 export function KPICard({
   title,
@@ -32,12 +49,17 @@ export function KPICard({
   valueSuffix,
   trend,
   trendValue,
+  trendLabelOverride,
+  trendUnit = "percent",
   icon,
   sparkline,
+  sparkColor,
   children,
   isLoading,
   className,
+  sentimentHealth,
 }: Props) {
+  const prefersReducedMotion = useReducedMotion();
   const normalizedTrend: "up" | "down" | "flat" | null =
     trend ??
     (trendValue == null
@@ -52,15 +74,18 @@ export function KPICard({
     trendValue == null || normalizedTrend == null
       ? null
       : {
-          label: `${trendValue > 0 ? "+" : ""}${Math.round(trendValue * 10) / 10}%`,
+          label:
+            trendLabelOverride ??
+            (trendUnit === "points"
+              ? `${trendValue > 0 ? "+" : ""}${Math.round(trendValue * 10) / 10} pts (7j)`
+              : `${trendValue > 0 ? "+" : ""}${Math.round(trendValue * 10) / 10}%`),
           isPositive: trendValue > 0,
           Icon: normalizedTrend === "up" ? ArrowUpRight : normalizedTrend === "down" ? ArrowDownRight : Minus,
         };
 
-  // Icône : dégradé rose -> or (Lucide utilise `currentColor`).
   const iconElement = (() => {
     if (!icon) return null;
-    const gradientClasses = "text-transparent bg-clip-text bg-gradient-to-r from-[#C4637A] to-[#C9A96E]";
+    const gradientClasses = "text-transparent bg-clip-text bg-gradient-to-r from-[var(--comex-bordeaux,#be185d)] to-[#c9a96e]";
     if (isValidElement(icon)) {
       const iconEl = icon as ReactElement<{ className?: string }>;
       return cloneElement(iconEl, {
@@ -70,12 +95,8 @@ export function KPICard({
     return icon;
   })();
 
-  useId(); // keep useId call to avoid unused hook churn during refactors
-
-  // Mini-sparkline : Sephora rose en trait + remplissage très léger.
-  const area = badge
-    ? { stroke: "#C4637A", fill: "rgba(196, 99, 122, 0.08)" }
-    : { stroke: "#C4637A", fill: "rgba(196, 99, 122, 0.08)" };
+  const areaStroke = sparkColor ?? "var(--comex-bordeaux, #be185d)";
+  const areaFill = "rgba(190, 24, 93, 0.08)";
 
   const sentimentProgress =
     title === "Indice de Sentiment" && typeof value === "number"
@@ -84,86 +105,83 @@ export function KPICard({
 
   return (
     <motion.div
-      whileHover={{
-        y: -3,
-        boxShadow: "0 12px 40px rgba(196, 99, 122, 0.14)",
-      }}
-      whileTap={{ scale: 0.99 }}
+      whileHover={
+        prefersReducedMotion
+          ? undefined
+          : {
+              y: -2,
+              boxShadow: "0 8px 24px rgba(17,24,39,0.08), 0 2px 8px rgba(190,24,93,0.06)",
+            }
+      }
+      whileTap={prefersReducedMotion ? undefined : { scale: 0.995 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className={cn("group transition-all duration-200", className)}
+      className={cn("group transition-shadow duration-200", className)}
       style={{
         willChange: "transform",
         background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius-card)",
-        padding: "28px 28px 24px",
-        boxShadow: "var(--shadow-card)",
+        border: "1px solid var(--comex-border, #e5e7eb)",
+        borderRadius: "16px",
+        padding: "24px 24px 20px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         overflow: "hidden",
         position: "relative",
       }}
     >
       <div
         aria-hidden
-        className="absolute left-0 top-0 h-[3px] w-12"
+        className="absolute left-0 top-0 h-[3px] w-14 rounded-br"
         style={{
-          background: "linear-gradient(90deg, var(--s-rose-deep), var(--s-gold))",
-          borderRadius: "0 0 4px 0",
+          background: "linear-gradient(90deg, var(--comex-bordeaux,#be185d), #c9a96e)",
         }}
       />
 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div
-            className="text-[10px] font-semibold uppercase tracking-[0.14em]"
-            style={{ color: "var(--text-muted)", marginBottom: 12 }}
+            className="text-[11px] font-semibold uppercase tracking-widest"
+            style={{ color: "var(--text-muted)", marginBottom: 10 }}
           >
             {title}
           </div>
 
           {isLoading ? (
             <div>
-              <div className="skeleton h-3 w-20 mb-4" />
-              <div className="skeleton h-12 w-28 mb-3" />
+              <div className="skeleton mb-4 h-3 w-20" />
+              <div className="skeleton mb-3 h-12 w-28" />
             </div>
           ) : (
             <>
               <div
-                className="flex items-start justify-between gap-4"
-                style={{ marginBottom: title === "Indice de Sentiment" ? 10 : 6 }}
+                className="flex flex-wrap items-start justify-between gap-3"
+                style={{ marginBottom: title === "Indice de Sentiment" ? 8 : 4 }}
               >
-                <div>
+                <div className="flex flex-wrap items-center gap-2">
                   {value == null ? (
-                    <div className="text-[52px] font-semibold leading-none text-[rgba(20,7,16,0.3)]">—</div>
+                    <div className="text-[48px] font-bold leading-none text-gray-300">—</div>
                   ) : typeof value === "string" ? (
-                    <div className="text-[52px] font-semibold leading-none text-[var(--text-primary)] tabular-nums">
+                    <div className="text-[48px] font-bold leading-none text-[var(--comex-text,#111827)] tabular-nums">
                       {value}
                     </div>
                   ) : (
                     <AnimatedCounter
                       value={value}
-                      duration={1600}
+                      duration={prefersReducedMotion ? 0 : 500}
                       decimals={0}
                       suffix={valueSuffix}
-                      className="font-mono text-[52px] font-medium leading-none text-[var(--text-primary)] tabular-nums"
+                      className="font-mono text-[48px] font-bold leading-none text-[var(--comex-text,#111827)] tabular-nums"
                     />
                   )}
 
-                  {title === "Indice de Sentiment" ? (
-                    <div className="mt-3">
-                      {isLoading || sentimentProgress == null ? (
-                        <div className="skeleton h-[3px] w-full rounded-full" />
-                      ) : (
-                        <div className="h-[3px] w-full overflow-hidden rounded-full bg-[rgba(20,7,16,0.04)]">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${sentimentProgress}%`,
-                              background: "linear-gradient(90deg, var(--s-rose-deep), var(--s-gold))",
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
+                  {sentimentHealth ? (
+                    <span
+                      className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                      style={{
+                        background: healthBadge(sentimentHealth).bg,
+                        color: healthBadge(sentimentHealth).color,
+                      }}
+                    >
+                      {healthBadge(sentimentHealth).label}
+                    </span>
                   ) : null}
                 </div>
 
@@ -177,13 +195,13 @@ export function KPICard({
                           : "negative";
                     const wrapStyle =
                       tone === "positive"
-                        ? { background: "var(--positive-bg)", color: "var(--positive)" }
+                        ? { background: "rgba(34,197,94,0.12)", color: "#16a34a" }
                         : tone === "negative"
-                          ? { background: "var(--negative-bg)", color: "var(--negative)" }
+                          ? { background: "rgba(239,68,68,0.12)", color: "#ef4444" }
                           : { background: "var(--neutral-bg)", color: "var(--neutral)" };
                     return (
                       <div
-                        className="inline-flex items-center gap-3 rounded-full px-[10px] py-[3px] text-[12px] font-semibold"
+                        className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[12px] font-semibold"
                         style={wrapStyle}
                       >
                         <badge.Icon className="size-3.5" />
@@ -193,43 +211,55 @@ export function KPICard({
                   })()
                 ) : null}
               </div>
+
+              {title === "Indice de Sentiment" && sentimentProgress != null ? (
+                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-gray-100">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${sentimentProgress}%`,
+                      background: "linear-gradient(90deg, var(--comex-bordeaux,#be185d), #9f1239)",
+                    }}
+                    initial={prefersReducedMotion ? false : { width: 0 }}
+                    animate={{ width: `${sentimentProgress}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  />
+                </div>
+              ) : null}
             </>
           )}
         </div>
 
         {iconElement ? (
-          <div className="relative z-10 mt-1 flex size-10 items-center justify-center rounded-2xl">
-            {iconElement}
-          </div>
+          <div className="relative z-10 mt-0.5 flex size-10 items-center justify-center rounded-2xl">{iconElement}</div>
         ) : null}
       </div>
 
-      {children ? <div className="mt-4">{children}</div> : null}
+      {children ? <div className="mt-2">{children}</div> : null}
 
-      <div className="mt-4 h-[48px]">
+      <div className="mt-3 h-[44px]">
         {isLoading ? (
-          <div className="skeleton h-2 w-full" />
+          <div className="skeleton h-2 w-full rounded" />
         ) : sparkline && sparkline.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparkline} margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>
               <Area
                 type="monotone"
                 dataKey="value"
-                stroke={area.stroke}
-                fill={area.fill}
+                stroke={areaStroke}
+                fill={areaFill}
                 strokeWidth={2}
                 dot={false}
                 activeDot={false}
+                isAnimationActive={!prefersReducedMotion}
+                animationDuration={500}
               />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full w-full rounded-2xl" style={{ background: "var(--bg-secondary)" }} />
+          <div className="h-full w-full rounded-xl bg-gray-50" />
         )}
       </div>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-white to-transparent" />
     </motion.div>
   );
 }
-

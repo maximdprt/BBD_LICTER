@@ -1,5 +1,6 @@
 import { addDays, formatISO, startOfDay } from "date-fns";
-import type { DateRange, MentionRow, Sentiment, Source } from "@/lib/types";
+import { signalToMentionRow } from "@/lib/metrics";
+import type { DateRange, SignalRow, SignalSentiment, SignalSource, ThemeToken } from "@/lib/types";
 
 type Rng = () => number;
 
@@ -20,19 +21,27 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-const SOURCES: readonly Source[] = ["Twitter/X", "Instagram", "TikTok", "LinkedIn"];
-const THEMES = [
+const SOURCES: readonly SignalSource[] = [
+  "trustpilot",
+  "google",
+  "tiktok",
+  "instagram",
+  "linkedin",
+  "reddit",
+];
+
+const THEMES: readonly ThemeToken[] = [
   "livraison",
-  "prix",
-  "service",
-  "produits",
-  "fidélité",
-  "application",
   "stock",
-  "conseil",
-  "SAV",
   "magasin",
-] as const;
+  "fidélité",
+  "SAV",
+  "service",
+  "application",
+  "produits",
+  "conseil",
+  "prix",
+];
 
 const POSITIVE_TEMPLATES = [
   "Très satisfait(e) : service au top et rapide.",
@@ -58,15 +67,19 @@ const NEUTRAL_TEMPLATES = [
   "Service standard.",
 ] as const;
 
-function sentimentFromScore(score01: number): Sentiment {
-  if (score01 >= 0.66) return "positif";
-  if (score01 <= 0.33) return "négatif";
-  return "neutre";
+function sentimentFromScore01(score01: number): SignalSentiment {
+  if (score01 >= 0.58) return "positive";
+  if (score01 <= 0.38) return "negative";
+  return "neutral";
 }
 
-function templateFor(sentiment: Sentiment, rng: Rng) {
-  if (sentiment === "positif") return pick(rng, POSITIVE_TEMPLATES);
-  if (sentiment === "négatif") return pick(rng, NEGATIVE_TEMPLATES);
+function score01ToSentimentScore(score01: number): number {
+  return Math.round((score01 * 2 - 1) * 1000) / 1000;
+}
+
+function templateFor(sentiment: SignalSentiment, rng: Rng) {
+  if (sentiment === "positive") return pick(rng, POSITIVE_TEMPLATES);
+  if (sentiment === "negative") return pick(rng, NEGATIVE_TEMPLATES);
   return pick(rng, NEUTRAL_TEMPLATES);
 }
 
@@ -77,7 +90,10 @@ export function shouldUseMockFallback(): boolean {
   return process.env.NODE_ENV !== "production";
 }
 
-export function generateMockMentions(range: DateRange, seed = 1337): MentionRow[] {
+/**
+ * Génère des signaux factices alignés sur le schéma `signals` (6 mois).
+ */
+export function generateMockSignals(range: DateRange, seed = 1337): SignalRow[] {
   const rng = mulberry32(seed);
   const from = startOfDay(range.from);
   const to = startOfDay(range.to);
@@ -87,7 +103,7 @@ export function generateMockMentions(range: DateRange, seed = 1337): MentionRow[
     Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)),
   );
 
-  const rows: MentionRow[] = [];
+  const rows: SignalRow[] = [];
 
   for (let i = 0; i <= days; i++) {
     const day = addDays(from, i);
@@ -96,41 +112,55 @@ export function generateMockMentions(range: DateRange, seed = 1337): MentionRow[
     const volume = clamp(base + spike, 6, 140);
 
     for (let j = 0; j < volume; j++) {
-      const marque = rng() < 0.62 ? ("Sephora" as const) : ("Nocibé" as const);
+      const brand = rng() < 0.62 ? ("sephora" as const) : ("nocibe" as const);
       const source = pick(rng, SOURCES);
-      const theme = pick(rng, THEMES);
+      const themePrimary = pick(rng, THEMES);
+      const themeSecondary = rng() < 0.35 ? pick(rng, THEMES) : themePrimary;
+      const themes: ThemeToken[] =
+        themePrimary === themeSecondary ? [themePrimary] : [themePrimary, themeSecondary];
 
-      // Différences de "positionnement" simulées
-      const marqueBias = marque === "Sephora" ? 0.58 : 0.52;
+      const marqueBias = brand === "sephora" ? 0.56 : 0.5;
       const sourceBias =
-        source === "TikTok"
-          ? 0.54
-          : source === "Twitter/X"
-            ? 0.49
-            : source === "Instagram"
-              ? 0.56
-              : 0.53;
-      const themeBias = theme === "prix" ? 0.42 : theme === "service" ? 0.55 : 0.53;
+        source === "tiktok"
+          ? 0.52
+          : source === "reddit"
+            ? 0.48
+            : source === "instagram"
+              ? 0.55
+              : 0.52;
+      const themeBias = themePrimary === "prix" ? 0.4 : themePrimary === "livraison" ? 0.45 : 0.54;
 
-      const score01 = clamp(
-        (marqueBias + sourceBias + themeBias) / 3 + (rng() - 0.5) * 0.28,
+      let score01 = clamp(
+        (marqueBias + sourceBias + themeBias) / 3 + (rng() - 0.5) * 0.32,
         0,
         1,
       );
-      const sentiment = sentimentFromScore(score01);
-      const note = clamp(1 + score01 * 4 + (rng() - 0.5) * 0.7, 1, 5);
+      // Semaine ~39 : crise livraison simulée pour démo jury
+      const weekNum = Math.floor(i / 7);
+      if (themePrimary === "livraison" && weekNum === Math.floor(days / 7) - 8) {
+        score01 = clamp(score01 - 0.22 + (rng() - 0.5) * 0.1, 0, 1);
+      }
+
+      const sentiment = sentimentFromScore01(score01);
+      const sentiment_score = score01ToSentimentScore(score01);
+      const platform_rating = clamp(1 + score01 * 4 + (rng() - 0.5) * 0.6, 1, 5);
+      const is_alert = sentiment_score < -0.6 || (rng() < 0.02 && sentiment === "negative");
+      const raw = `${templateFor(sentiment, rng)} (${themes.join(", ")})`;
 
       rows.push({
-        id: `mock-${seed}-${i}-${j}`,
-        date: formatISO(day, { representation: "complete" }),
+        id: `sig-${seed}-${i}-${j}`,
         source,
-        texte: `${templateFor(sentiment, rng)} (${theme})`,
-        note: Math.round(note * 10) / 10,
+        brand,
+        date: formatISO(day, { representation: "complete" }),
+        raw_text: raw,
         sentiment,
-        theme,
-        marque,
-        pays: rng() < 0.88 ? "France" : "Belgique",
-        langue: "fr",
+        sentiment_score,
+        themes,
+        platform_rating: Math.round(platform_rating * 10) / 10,
+        is_alert,
+        summary_fr: raw.length > 120 ? `${raw.slice(0, 117)}…` : raw,
+        created_at: formatISO(day, { representation: "complete" }),
+        resolved: false,
       });
     }
   }
@@ -138,3 +168,7 @@ export function generateMockMentions(range: DateRange, seed = 1337): MentionRow[
   return rows;
 }
 
+/** @deprecated Préférer generateMockSignals + signalToMentionRow dans queries. */
+export function generateMockMentions(range: DateRange, seed = 1337) {
+  return generateMockSignals(range, seed).map(signalToMentionRow);
+}

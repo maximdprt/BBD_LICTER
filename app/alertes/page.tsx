@@ -1,31 +1,56 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { BellRing, ShieldAlert } from "lucide-react";
-import { useMemo } from "react";
-import { subDays } from "date-fns";
+import { useSWRConfig } from "swr";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+  ZAxis,
+} from "recharts";
 import { ChartCard } from "@/components/charts/ChartCard";
-import { AlertBanner } from "@/components/ui/AlertBanner";
-import { KPICard } from "@/components/ui/KPICard";
 import { VerbatimFeed } from "@/components/sections/VerbatimFeed";
-import { LiveAlertsList } from "@/components/sections/LiveAlertsList";
-import { useAlertsSnapshot, useDefaultDateRange, useLiveAlerts, useMentionVolume, useSentimentIndex, useVerbatims } from "@/hooks/useMetrics";
+import {
+  useActiveAlertsCount24h,
+  useAlertTableRows,
+  useAlertVelocityWeekly,
+  useDefaultDateRange,
+  useMentionVolume,
+  useSentimentIndex,
+  useVerbatims,
+  useWeakSignalsScatter,
+} from "@/hooks/useMetrics";
 import { useRealtimeMentions } from "@/hooks/useRealtime";
+import { subDays } from "date-fns";
+
+const CRITICAL_WEEKLY = 10;
 
 export default function AlertesPage() {
   useRealtimeMentions({ enabled: true });
-
+  const { mutate } = useSWRConfig();
   const range = useDefaultDateRange();
-  const last7Days = useMemo(() => ({ from: subDays(new Date(), 7), to: new Date() }), []);
+  const last3m = useMemo(() => ({ from: subDays(new Date(), 90), to: new Date() }), []);
   const sephoraSent = useSentimentIndex("Sephora", range);
   const nocibeSent = useSentimentIndex("Nocibé", range);
   const sephoraVolume = useMentionVolume("Sephora", range);
-  const alerts = useAlertsSnapshot();
-  const liveAlerts = useLiveAlerts(last7Days, { limit: 15 });
+  const activeCount = useActiveAlertsCount24h();
+  const rows = useAlertTableRows(range);
+  const velocity = useAlertVelocityWeekly(last3m);
+  const weak = useWeakSignalsScatter(range);
+  const [checked, setChecked] = useState(() => new Date().toISOString());
+  const [resolvedLocally, setResolvedLocally] = useState<Set<string>>(() => new Set());
 
   const feedFilters = useMemo(() => {
     const to = new Date();
-    const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const from = subDays(to, 7);
     return { from, to };
   }, []);
   const feed = useVerbatims(feedFilters, 0, 10);
@@ -35,6 +60,24 @@ export default function AlertesPage() {
     nocibeSent.data?.score != null &&
     nocibeSent.data.score > sephoraSent.data.score;
 
+  const resolve = async (id: string) => {
+    await fetch("/api/alerts/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    setResolvedLocally((prev) => new Set(prev).add(id));
+    void mutate((k) => Array.isArray(k) && k[0] === "alertTableRows");
+    void mutate((k) => Array.isArray(k) && k[0] === "activeAlertsCount24h");
+  };
+
+  const displayRows = useMemo(() => {
+    const base = rows.data ?? [];
+    return base.map((r) =>
+      resolvedLocally.has(r.id) ? { ...r, status: "resolved" as const } : r,
+    );
+  }, [rows.data, resolvedLocally]);
+
   return (
     <div className="mx-auto w-full max-w-[1400px]">
       <motion.div
@@ -43,77 +86,136 @@ export default function AlertesPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="grid gap-4"
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <KPICard
-            title="Sentiment Sephora"
-            value={sephoraSent.data?.score ?? null}
-            icon={<ShieldAlert className="size-5" />}
-            isLoading={!sephoraSent.data && !sephoraSent.error}
-          />
-          <KPICard
-            title="Sentiment Nocibé"
-            value={nocibeSent.data?.score ?? null}
-            icon={<ShieldAlert className="size-5" />}
-            isLoading={!nocibeSent.data && !nocibeSent.error}
-          />
-          <KPICard
-            title="Volume Sephora"
-            value={sephoraVolume.data?.total ?? null}
-            trendValue={sephoraVolume.data?.deltaPct ?? null}
-            icon={<BellRing className="size-5" />}
-            isLoading={!sephoraVolume.data && !sephoraVolume.error}
-          />
-          <KPICard
-            title="Alerte concurrentielle"
-            value={competitorOvertake ? 1 : 0}
-            valueSuffix={competitorOvertake ? " (ON)" : " (OFF)"}
-            icon={<BellRing className="size-5" />}
-            isLoading={!sephoraSent.data && !nocibeSent.data}
-          />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--comex-border)] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span
+              className={`rounded-full px-3 py-1 text-sm font-bold ${(activeCount.data ?? 0) > 0 ? "animate-pulse bg-red-100 text-red-700" : "bg-green-100 text-green-800"}`}
+            >
+              {(activeCount.data ?? 0) > 0
+                ? `${activeCount.data} alertes actives`
+                : "0 alerte active"}
+            </span>
+            <span className="text-xs text-gray-500">
+              Dernière vérification : {new Date(checked).toLocaleString("fr-FR")}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="text-xs font-medium text-[var(--comex-bordeaux)] hover:underline"
+            onClick={() => setChecked(new Date().toISOString())}
+          >
+            Actualiser
+          </button>
         </div>
 
-        {competitorOvertake ? (
-          <AlertBanner
-            tone="warning"
-            title="Alerte — Nocibé surperforme en sentiment"
-            description="Le score de sentiment Nocibé dépasse Sephora sur la période analysée."
-          />
-        ) : null}
-
-        <ChartCard
-          title="Alertes auto-générées"
-          subtitle="Heuristiques temps réel (24h) — rouge/orange/bleu"
-          isLoading={!alerts.data && !alerts.error}
-        >
-          {alerts.data?.length ? (
-            <div className="space-y-3">
-              {alerts.data.map((a) => (
-                <AlertBanner
-                  key={a.id}
-                  tone={a.tone === "red" ? "danger" : a.tone === "orange" ? "warning" : "info"}
-                  title={a.title}
-                  description={a.description}
-                />
-              ))}
-            </div>
+        <ChartCard title="Tableau des alertes" subtitle="Tri par date — plus récent en premier" isLoading={!rows.data && !rows.error}>
+          {!displayRows.length ? (
+            <p className="text-sm text-gray-500">Aucune alerte sur la période.</p>
           ) : (
-            <div className="rounded-2xl border border-border bg-white p-6 text-sm text-text-secondary">
-              Aucune alerte détectée sur les dernières 24h.
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b text-[11px] uppercase tracking-wider text-gray-500">
+                  <tr>
+                    <th className="py-2 pr-2">Date</th>
+                    <th className="py-2 pr-2">Source</th>
+                    <th className="py-2 pr-2">Thème</th>
+                    <th className="py-2 pr-2">Résumé</th>
+                    <th className="py-2 pr-2">Score</th>
+                    <th className="py-2 pr-2">Statut</th>
+                    <th className="py-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...displayRows]
+                    .sort((a, b) => b.date.localeCompare(a.date))
+                    .map((r) => {
+                      const critical = r.score < -0.7;
+                      const vigil = r.score >= -0.7 && r.score < -0.5;
+                      return (
+                        <tr
+                          key={r.id}
+                          className={`border-t ${critical ? "bg-red-50/80" : vigil ? "bg-amber-50/60" : ""}`}
+                        >
+                          <td className="py-2 pr-2 whitespace-nowrap text-gray-600">
+                            {new Date(r.date).toLocaleString("fr-FR")}
+                          </td>
+                          <td className="py-2 pr-2">{r.source}</td>
+                          <td className="py-2 pr-2 capitalize">{r.theme}</td>
+                          <td className="max-w-[220px] truncate py-2 pr-2">{r.summary}</td>
+                          <td className="py-2 pr-2 font-mono">{r.score.toFixed(2)}</td>
+                          <td className="py-2 pr-2">{r.status === "resolved" ? "Traité" : "Actif"}</td>
+                          <td className="py-2">
+                            {r.status === "resolved" ? null : (
+                              <button
+                                type="button"
+                                className="rounded-lg bg-gray-900 px-2 py-1 text-xs font-medium text-white"
+                                onClick={() => void resolve(r.id)}
+                              >
+                                Marquer traité
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
             </div>
           )}
         </ChartCard>
 
-        <ChartCard
-          title="Alertes en direct"
-          subtitle="Avis avec gravité &gt; 4 (détectés par l’IA) — 7 derniers jours"
-          isLoading={!liveAlerts.data && !liveAlerts.error}
-        >
-          <LiveAlertsList rows={liveAlerts.data ?? []} isLoading={!liveAlerts.data && !liveAlerts.error} />
+        <ChartCard title="Vélocité des alertes" subtitle="3 mois — seuil critique hebdomadaire" isLoading={!velocity.data && !velocity.error}>
+          <div className="h-[260px] w-full min-h-[240px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={velocity.data ?? []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} tickFormatter={(w) => w.slice(5)} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <ReferenceLine y={CRITICAL_WEEKLY} stroke="#ef4444" strokeDasharray="4 4" label="Seuil critique" />
+                <Line type="monotone" dataKey="count" stroke="var(--comex-bordeaux)" strokeWidth={2} dot />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </ChartCard>
 
+        <ChartCard title="Carte des signaux faibles" subtitle="Volume ↑ et sentiment ↓ (danger en bas à droite)" isLoading={!weak.data && !weak.error}>
+          {!weak.data?.length ? (
+            <p className="text-sm text-gray-500">Aucun signal faible détecté sur les règles définies.</p>
+          ) : (
+            <div className="h-[300px] w-full min-h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 16, right: 16, bottom: 16, left: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" dataKey="volumeGrowth" name="Croissance volume %" tick={{ fontSize: 10 }} />
+                  <YAxis type="number" dataKey="sentimentDelta" name="Δ sentiment" tick={{ fontSize: 10 }} />
+                  <ZAxis range={[80, 80]} />
+                  <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+                  <Scatter name="Thèmes" data={weak.data} fill="var(--comex-bordeaux)">
+                    {/* labels via custom shape would be heavy; list below */}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+              <ul className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
+                {weak.data.map((p) => (
+                  <li key={p.theme} className="rounded-full bg-gray-100 px-2 py-0.5 capitalize">
+                    {p.theme}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </ChartCard>
+
+        {competitorOvertake ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Alerte — Nocibé surperforme en sentiment sur la période analysée.
+          </div>
+        ) : null}
+
         <ChartCard
-          title="Realtime feed (mentions récentes)"
-          subtitle="Mis à jour via Supabase Realtime + SWR"
+          title="Realtime feed"
+          subtitle="Signaux récents — 7 derniers jours"
           isLoading={!feed.data && !feed.error}
         >
           <VerbatimFeed rows={feed.data?.rows ?? []} isLoading={!feed.data && !feed.error} />
@@ -122,4 +224,3 @@ export default function AlertesPage() {
     </div>
   );
 }
-

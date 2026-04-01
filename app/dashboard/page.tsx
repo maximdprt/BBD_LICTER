@@ -1,40 +1,58 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import Link from "next/link";
 import { MessageSquare, PieChart, Smile, TrendingUp } from "lucide-react";
+import { AIInsightPanel } from "@/components/dashboard/AIInsightPanel";
 
 import { ChartCard } from "@/components/charts/ChartCard";
 import { SentimentLineChart } from "@/components/charts/SentimentLineChart";
 import { SourceDonutChart } from "@/components/charts/SourceDonutChart";
-import { KPICard } from "@/components/ui/KPICard";
+import { VoiceShareHalfGauge } from "@/components/charts/VoiceShareHalfGauge";
+import { KPICard, type SentimentHealthZone } from "@/components/ui/KPICard";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { getAlertFlags } from "@/lib/queries";
 import { cn } from "@/lib/cn";
 import {
+  useAlertWeekMarkers,
+  useCriticalAlerts24h,
   useDefaultDateRange,
   useMentionVolume,
   useSentimentIndex,
   useSentimentOverTime,
+  useSentimentSparkline30d,
+  useSentimentTrend7d,
   useTopThemesInsight,
   useVoiceShareByPlatform,
-  useWeeklyTrend,
   useWeeklyVolume,
 } from "@/hooks/useMetrics";
+import { useRealtimeMentions } from "@/hooks/useRealtime";
 import { WeeklyTrend as WeeklyTrendChart } from "@/components/sections/WeeklyTrend";
 import { ThemeAnalysis } from "@/components/sections/ThemeAnalysis";
 
+function sentimentHealthFromScore(score: number | null): SentimentHealthZone | null {
+  if (score == null) return null;
+  if (score < 40) return "critical";
+  if (score < 60) return "moderate";
+  return "excellent";
+}
+
 export default function DashboardPage() {
+  useRealtimeMentions({ enabled: true });
   const range = useDefaultDateRange();
   const prefersReducedMotion = useReducedMotion();
 
   const sephoraSent = useSentimentIndex("Sephora", range);
   const sephoraVolume = useMentionVolume("Sephora", range);
   const voice = useVoiceShareByPlatform(range);
-  const trend = useWeeklyTrend("Sephora");
+  const sentimentTrend7d = useSentimentTrend7d("Sephora");
+  const spark30 = useSentimentSparkline30d("Sephora");
   const overTime = useSentimentOverTime(range);
   const weeklyVolumeSephora = useWeeklyVolume("Sephora", range);
   const weeklyVolumeNocibe = useWeeklyVolume("Nocibé", range);
   const themes = useTopThemesInsight("Sephora", range);
+  const critical24 = useCriticalAlerts24h();
+  const alertWeeks = useAlertWeekMarkers(range, "Sephora");
 
   const voiceTotals = (voice.data ?? []).reduce(
     (acc, p) => ({
@@ -52,20 +70,6 @@ export default function DashboardPage() {
     sentimentScore: sephoraSent.data?.score ?? null,
     volumeDeltaPct: sephoraVolume.data?.deltaPct ?? null,
   });
-
-  const deltaFromSeries = (values: Array<number | null | undefined>) => {
-    const cleaned = values.filter((v): v is number => typeof v === "number" && Number.isFinite(v));
-    const last = cleaned.at(-1);
-    const prev = cleaned.at(-2);
-    if (last == null || prev == null) return null;
-    if (prev === 0) return null;
-    return ((last - prev) / Math.abs(prev)) * 100;
-  };
-
-  const sentimentSpark = (overTime.data ?? [])
-    .slice(-7)
-    .map((p) => ({ value: p.sephora ?? 0 }));
-  const sentimentTrendValue = deltaFromSeries((overTime.data ?? []).slice(-7).map((p) => p.sephora));
 
   const volumeSpark = (weeklyVolumeSephora.data ?? []).slice(-7).map((p) => ({ value: p.value }));
 
@@ -88,11 +92,11 @@ export default function DashboardPage() {
   const voiceShareTrendValue =
     voiceShareSpark.length >= 2 ? voiceShareSpark.at(-1)!.value - voiceShareSpark.at(-2)!.value : null;
 
-  const trendSpark = (() => {
-    const pts = weeklyVolumeSephora.data ?? [];
-    const last = pts.slice(-7);
-    return last.map((p) => ({ value: p.value }));
-  })();
+  const trendSentimentSpark = (overTime.data ?? [])
+    .slice(-7)
+    .map((p) => ({ value: p.sephora ?? 0 }));
+
+  const d7 = sentimentTrend7d.data?.deltaPoints;
 
   const containerVariants = {
     hidden: {},
@@ -117,8 +121,24 @@ export default function DashboardPage() {
     },
   };
 
+  const crit = critical24.data;
+
   return (
     <div className="mx-auto w-full max-w-[1400px]">
+      {crit && crit.count > 0 ? (
+        <Link
+          href="/alertes"
+          className={cn(
+            "mb-4 block rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 transition-colors hover:bg-red-100",
+            "animate-pulse",
+          )}
+        >
+          <span className="mr-1">⚠</span> ALERTE ACTIVE — {crit.count} signaux critiques détectés. Thème :{" "}
+          <span className="font-semibold">{crit.dominantTheme}</span>. Source :{" "}
+          <span className="font-semibold">{crit.dominantSource}</span>. → Voir les alertes
+        </Link>
+      ) : null}
+
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -129,16 +149,23 @@ export default function DashboardPage() {
           <KPICard
             title="Indice de Sentiment"
             value={sephoraSent.data?.score ?? null}
-            trendValue={sentimentTrendValue}
+            trendValue={d7 ?? null}
+            trendUnit="points"
+            trend={sentimentTrend7d.data?.direction ?? null}
             icon={<Smile className="size-5" />}
-            sparkline={sentimentSpark}
-            isLoading={!sephoraSent.data && !sephoraSent.error}
+            sparkline={spark30.data ?? []}
+            sentimentHealth={sentimentHealthFromScore(sephoraSent.data?.score ?? null)}
+            isLoading={
+              (!sephoraSent.data && !sephoraSent.error) ||
+              (!spark30.data && !spark30.error) ||
+              (!sentimentTrend7d.data && !sentimentTrend7d.error)
+            }
           />
         </motion.div>
 
         <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
           <KPICard
-            title="Volume"
+            title="Volume total de signaux"
             value={sephoraVolume.data?.total ?? null}
             trendValue={sephoraVolume.data?.deltaPct ?? null}
             icon={<MessageSquare className="size-5" />}
@@ -149,26 +176,29 @@ export default function DashboardPage() {
 
         <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
           <KPICard
-            title="Part de voix"
-            value={voiceSharePct}
-            valueSuffix="%"
+            title="Part de voix vs Nocibé"
+            value={null}
             trendValue={voiceShareTrendValue}
             icon={<PieChart className="size-5" />}
             sparkline={voiceShareSpark}
+            sparkColor="var(--comex-blue)"
             isLoading={!voice.data && !voice.error}
-          />
+          >
+            <VoiceShareHalfGauge value={voiceSharePct} />
+          </KPICard>
         </motion.div>
 
         <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
           <KPICard
-            title="Tendance"
-            value={trend.data?.deltaPct == null ? null : Math.round(trend.data.deltaPct * 10) / 10}
-            valueSuffix="%"
-            trend={trend.data?.direction ?? null}
-            trendValue={trend.data?.deltaPct ?? null}
+            title="Tendance sentiment (7j)"
+            value={d7 == null ? null : Math.round(d7 * 10) / 10}
+            valueSuffix=" pts"
+            trend={sentimentTrend7d.data?.direction ?? null}
+            trendValue={d7 ?? null}
+            trendUnit="points"
             icon={<TrendingUp className="size-5" />}
-            sparkline={trendSpark}
-            isLoading={!trend.data && !trend.error}
+            sparkline={trendSentimentSpark}
+            isLoading={!sentimentTrend7d.data && !sentimentTrend7d.error}
           />
         </motion.div>
       </motion.div>
@@ -185,7 +215,7 @@ export default function DashboardPage() {
           <AlertBanner
             tone="warning"
             title="Signal — Spike de volume"
-            description="Le volume de mentions a fortement augmenté sur la période récente. Contrôler l’origine (plateformes + thèmes)."
+            description="Le volume de signaux a fortement augmenté sur la période récente. Contrôler l’origine (plateformes + thèmes)."
           />
         ) : null}
       </div>
@@ -197,7 +227,7 @@ export default function DashboardPage() {
           subtitle="Sephora vs Nocibé — score 0 à 100"
           isLoading={!overTime.data && !overTime.error}
         >
-          <SentimentLineChart data={overTime.data ?? []} />
+          <SentimentLineChart data={overTime.data ?? []} alertWeeks={alertWeeks.data ?? []} />
         </ChartCard>
 
         <ChartCard
@@ -228,17 +258,19 @@ export default function DashboardPage() {
         </ChartCard>
       </div>
 
+      <AIInsightPanel />
+
       {(sephoraSent.error || sephoraVolume.error || voice.error || overTime.error) && (
         <div
           className={cn(
-            "relative mt-6 overflow-hidden rounded-sm border-[0.5px] border-[#FF00ED]/30 bg-white p-4 text-sm text-black",
+            "relative mt-6 overflow-hidden rounded-2xl border border-pink-200 bg-white p-4 text-sm text-[var(--comex-text)]",
           )}
         >
-          <div className="absolute inset-x-0 top-0 h-[2px] sephora-stripes" />
-          Impossible de charger certaines données depuis Supabase. Vérifie la table `mentions`, les droits RLS, et les variables d’environnement.
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-[var(--comex-bordeaux)] to-pink-300" />
+          Impossible de charger certaines données depuis Supabase. Vérifie la table `signals`, les droits RLS, et les
+          variables d’environnement.
         </div>
       )}
     </div>
   );
 }
-

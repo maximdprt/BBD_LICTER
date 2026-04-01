@@ -13,23 +13,30 @@ type Props = Readonly<{
   className?: string;
 }>;
 
-function SourceIcon({ source }: Readonly<{ source: MentionRow["source"] }>) {
+function SourceIcon({ source }: Readonly<{ source: string }>) {
+  const s = source.toLowerCase();
   const color =
-    source === "Instagram"
+    s.includes("instagram")
       ? "#E1306C"
-      : source === "LinkedIn"
+      : s.includes("linkedin")
         ? "#0A66C2"
-        : source === "TikTok"
+        : s.includes("tiktok")
           ? "#2D2D2D"
-          : source === "Twitter/X"
+          : s.includes("twitter") || s === "x"
             ? "#000000"
-            : "var(--text-secondary)";
+            : s.includes("google")
+              ? "#4285F4"
+              : s.includes("reddit")
+                ? "#FF4500"
+                : s.includes("trust")
+                  ? "#00b67a"
+                  : "var(--text-secondary)";
 
   const common = { className: "size-4", style: { color } } as const;
-  if (source === "Instagram") return <Instagram {...common} />;
-  if (source === "LinkedIn") return <Linkedin {...common} />;
-  if (source === "TikTok") return <Sparkles {...common} />;
-  if (source === "Twitter/X") return <Twitter {...common} />;
+  if (s.includes("instagram")) return <Instagram {...common} />;
+  if (s.includes("linkedin")) return <Linkedin {...common} />;
+  if (s.includes("tiktok")) return <Sparkles {...common} />;
+  if (s.includes("twitter") || s === "x") return <Twitter {...common} />;
   return <MessageSquare {...common} />;
 }
 
@@ -47,7 +54,7 @@ export function VerbatimFeed({ rows, isLoading, className }: Props) {
         </>
       ) : rows.length === 0 ? (
         <div className="rounded-3xl border border-border bg-white p-6 text-sm text-text-secondary">
-          Aucun verbatim trouvé avec ces filtres.
+          Pas de données pour cette période.
         </div>
       ) : (
         rows.map((r, i) => {
@@ -90,21 +97,41 @@ export function VerbatimFeed({ rows, isLoading, className }: Props) {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <SentimentBadge sentiment={r.sentiment} />
-                      <div className="inline-flex items-center gap-2 text-[13px]" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                      {r.theme ? (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium capitalize text-gray-700">
+                          {r.theme}
+                        </span>
+                      ) : null}
+                      {typeof r.sentiment_score === "number" ? (
+                        <span className="font-mono text-[12px] text-gray-500">
+                          {r.sentiment_score > 0 ? "+" : ""}
+                          {r.sentiment_score.toFixed(2)}
+                        </span>
+                      ) : null}
+                      <div
+                        className="inline-flex items-center gap-2 text-[13px]"
+                        style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}
+                      >
                         <SourceIcon source={r.source} />
                         <span>{new Date(r.date).toLocaleDateString("fr-FR")}</span>
                       </div>
-                      <div className="ml-auto text-[13px] font-semibold" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                      <div
+                        className="ml-auto text-[13px] font-semibold"
+                        style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}
+                      >
                         {r.marque}
                       </div>
                     </div>
-                    <div className="mt-[10px] text-[14px]" style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                    <div
+                      className="mt-[10px] text-[14px] italic"
+                      style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}
+                    >
                       {expanded ? text : short}
                       {text.length > 150 ? (
                         <button
                           type="button"
-                          className="ml-2 text-sm font-semibold hover:underline"
-                          style={{ color: "var(--s-rose-deep)" }}
+                          className="ml-2 text-sm font-semibold not-italic hover:underline"
+                          style={{ color: "var(--comex-bordeaux)" }}
                           onClick={() => setExpandedId(expanded ? null : r.id)}
                         >
                           {expanded ? "Réduire" : "Voir plus"}
@@ -133,4 +160,3 @@ export function VerbatimFeed({ rows, isLoading, className }: Props) {
     </div>
   );
 }
-

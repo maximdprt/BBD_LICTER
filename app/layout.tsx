@@ -42,7 +42,9 @@ export default function RootLayout({
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <TopBar />
-            <PageTransition>{children}</PageTransition>
+            <main id="pdf-capture-area" className="min-h-0 min-w-0 flex-1 overflow-auto px-4 py-6 md:px-8">
+              <PageTransition>{children}</PageTransition>
+            </main>
           </div>
         </div>
       </body>

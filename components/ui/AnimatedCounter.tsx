@@ -26,6 +26,10 @@ export function AnimatedCounter({
 
   useEffect(() => {
     if (!isInView) return;
+    if (duration <= 0) {
+      setDisplay(Number.isFinite(value) ? value : 0);
+      return;
+    }
 
     const start = performance.now();
     const frame = (now: number) => {
