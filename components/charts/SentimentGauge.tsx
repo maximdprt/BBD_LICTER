@@ -1,132 +1,152 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 
 type Props = Readonly<{
   value: number | null;
-  /** Comparaison Nocibé (indice 0–100). */
   competitorValue?: number | null;
-  size?: number;
+  /** Sparkline 30j pour Sephora (valeurs 0-100) */
+  sparkline?: { value: number }[];
   className?: string;
+  /** Ignoré — conservé pour rétrocompat avec les pages existantes */
+  size?: number;
 }>;
 
-export function SentimentGauge({ value, competitorValue, size = 260, className }: Props) {
-  const gaugeValue = value == null ? 0 : Math.max(0, Math.min(100, value));
-  const v = value == null ? null : gaugeValue;
+function zoneLabel(v: number): { label: string; color: string; bg: string } {
+  if (v < 40) return { label: "Critique", color: "#ef4444", bg: "rgba(239,68,68,0.1)" };
+  if (v < 60) return { label: "Modéré", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" };
+  if (v < 75) return { label: "Bon", color: "#16a34a", bg: "rgba(34,197,94,0.1)" };
+  return { label: "Excellent", color: "#15803d", bg: "rgba(34,197,94,0.14)" };
+}
 
-  const radius = 86;
-  const strokeWidth = 10;
-  const center = 100;
-  const circumference = 2 * Math.PI * radius;
-  const visible = circumference * 0.75;
-  const dasharray = `${visible} ${circumference - visible}`;
-  const dashoffset = visible * (1 - gaugeValue / 100);
-
-  const zone = (from: number, to: number, color: string) => {
-    const len = ((to - from) / 100) * visible;
-    const off = visible * (1 - to / 100);
-    return (
-      <circle
-        cx={center}
-        cy={center}
-        r={radius - 16}
-        fill="transparent"
-        stroke={color}
-        strokeWidth={4}
-        strokeLinecap="round"
-        strokeDasharray={`${len} ${circumference - len}`}
-        strokeDashoffset={off}
-        opacity={0.35}
-      />
-    );
-  };
-
-  const label =
-    v == null
-      ? null
-      : v < 40
-        ? "Critique"
-        : v < 70
-          ? "Modéré"
-          : "Excellent";
-
-  const adv =
-    v != null && competitorValue != null
-      ? v > competitorValue
-        ? ("sephora" as const)
-        : v < competitorValue
-          ? ("nocibe" as const)
-          : ("tie" as const)
-      : null;
+function ScoreBlock({
+  label,
+  value,
+  isMain,
+  delta,
+}: Readonly<{
+  label: string;
+  value: number | null;
+  isMain?: boolean;
+  delta?: number | null;
+}>) {
+  const zone = value != null ? zoneLabel(value) : null;
+  const score = value != null ? Math.round(value) : null;
 
   return (
-    <div className={cn("relative flex flex-col items-center", className)} style={{ width: size }}>
-      <svg width={size} height={size} viewBox="0 0 200 200" style={{ transform: "rotate(135deg)" }}>
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="transparent"
-          stroke="#f3f4f6"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={dasharray}
-        />
-        {zone(0, 40, "#ef4444")}
-        {zone(40, 70, "#f59e0b")}
-        {zone(70, 100, "#22c55e")}
-        <motion.circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="transparent"
-          stroke="var(--comex-bordeaux, #be185d)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={dasharray}
-          initial={{ strokeDashoffset: visible }}
-          animate={{ strokeDashoffset: dashoffset }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        />
-      </svg>
-
+    <div
+      className={cn(
+        "flex flex-col items-center rounded-2xl px-8 py-6 transition-all",
+        isMain ? "flex-1" : "flex-1 opacity-80",
+      )}
+      style={{
+        background: isMain ? "var(--bg-card)" : "#f9fafb",
+        border: `1px solid ${isMain ? "var(--comex-border)" : "#e5e7eb"}`,
+        boxShadow: isMain ? "0 2px 12px rgba(0,0,0,0.06)" : "none",
+      }}
+    >
       <div
-        className="pointer-events-none absolute text-center"
-        style={{ width: size, top: "50%", transform: "translateY(-58%)" }}
+        className="mb-3 text-[11px] font-semibold uppercase tracking-widest"
+        style={{ color: isMain ? "var(--comex-bordeaux)" : "var(--comex-blue)" }}
       >
-        <AnimatedCounter
-          value={v == null ? 0 : Math.round(v)}
-          duration={500}
-          decimals={0}
-          className="font-mono text-[42px] font-bold text-[var(--comex-text)]"
-        />
-        <div className="text-xs text-gray-500">sur 100</div>
-        {label ? (
-          <div className="mt-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
-            Critique | Modéré | Excellent → <span className="text-[var(--comex-bordeaux)]">{label}</span>
-          </div>
-        ) : null}
+        {label}
       </div>
 
-      {competitorValue != null ? (
-        <div className="mt-10 flex items-center gap-2 text-sm text-gray-600">
-          <span>
-            Nocibé : <span className="font-mono font-semibold">{Math.round(competitorValue)}</span>
-          </span>
-          {adv === "sephora" ? (
-            <span className="inline-flex items-center gap-1 text-green-600">
-              <ArrowUpRight className="size-4" /> avantage Sephora
-            </span>
-          ) : adv === "nocibe" ? (
-            <span className="inline-flex items-center gap-1 text-blue-600">
-              <ArrowDownRight className="size-4" /> avantage Nocibé
-            </span>
-          ) : null}
+      {score == null ? (
+        <div className="font-mono text-5xl font-bold text-gray-300">—</div>
+      ) : (
+        <AnimatedCounter
+          value={score}
+          duration={600}
+          decimals={0}
+          className={cn(
+            "font-mono font-bold leading-none tabular-nums",
+            isMain ? "text-[56px] text-[var(--comex-text,#111827)]" : "text-5xl text-[var(--comex-text,#111827)]",
+          )}
+        />
+      )}
+
+      <div className="mt-1 text-xs text-gray-400">/ 100</div>
+
+      {zone ? (
+        <span
+          className="mt-3 rounded-full px-3 py-1 text-[11px] font-semibold"
+          style={{ background: zone.bg, color: zone.color }}
+        >
+          {zone.label}
+        </span>
+      ) : null}
+
+      {/* Barre de progression visuelle */}
+      {score != null ? (
+        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <motion.div
+            className="h-full rounded-full"
+            style={{
+              background: isMain
+                ? "linear-gradient(90deg, var(--comex-bordeaux,#be185d), #9f1239)"
+                : "linear-gradient(90deg, var(--comex-blue,#3b82f6), #1d4ed8)",
+            }}
+            initial={{ width: 0 }}
+            animate={{ width: `${score}%` }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
         </div>
       ) : null}
+
+      {delta != null ? (
+        <div
+          className="mt-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
+          style={
+            delta > 0
+              ? { background: "rgba(34,197,94,0.12)", color: "#16a34a" }
+              : delta < 0
+                ? { background: "rgba(239,68,68,0.1)", color: "#ef4444" }
+                : { background: "#f3f4f6", color: "#6b7280" }
+          }
+        >
+          {delta > 0 ? <ArrowUpRight className="size-3" /> : delta < 0 ? <ArrowDownRight className="size-3" /> : <Minus className="size-3" />}
+          {delta > 0 ? "+" : ""}
+          {delta.toFixed(0)} pts vs Nocibé
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function SentimentGauge({ value, competitorValue, className }: Props) {
+  const sephScore = value != null ? Math.round(Math.max(0, Math.min(100, value))) : null;
+  const nociScore = competitorValue != null ? Math.round(Math.max(0, Math.min(100, competitorValue))) : null;
+  const delta = sephScore != null && nociScore != null ? sephScore - nociScore : null;
+
+  return (
+    <div className={cn("w-full", className)}>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <ScoreBlock
+          label="Sephora"
+          value={sephScore}
+          isMain
+          delta={delta}
+        />
+        <ScoreBlock
+          label="Nocibé"
+          value={nociScore}
+          isMain={false}
+        />
+      </div>
+
+      {delta != null && (
+        <p className="mt-3 text-center text-xs text-gray-500">
+          {delta > 0
+            ? `Avantage Sephora : +${delta} pts`
+            : delta < 0
+              ? `Avantage Nocibé : +${Math.abs(delta)} pts`
+              : "Égalité parfaite"}
+        </p>
+      )}
     </div>
   );
 }

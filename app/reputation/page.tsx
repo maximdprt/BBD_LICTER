@@ -9,7 +9,7 @@ import { SentimentBySourceBars } from "@/components/charts/SentimentBySourceBars
 import { SentimentBadge } from "@/components/ui/SentimentBadge";
 import {
   useDefaultDateRange,
-  useSentimentBySourceSephora,
+  useSentimentBySourceComparison,
   useSentimentIndex,
   useThemeWeekHeatmap,
   useTopNegativeVerbatims,
@@ -22,7 +22,7 @@ export default function ReputationPage() {
   const sentiment = useSentimentIndex("Sephora", range);
   const nocibe = useSentimentIndex("Nocibé", range);
   const heatmap = useThemeWeekHeatmap(range, "Sephora");
-  const bySource = useSentimentBySourceSephora(range);
+  const bySource = useSentimentBySourceComparison(range);
   const [verbatimPeriod, setVerbatimPeriod] = useState<"week" | "month" | "all">("week");
   const [modal, setModal] = useState<MentionRow | null>(null);
 
@@ -67,10 +67,10 @@ export default function ReputationPage() {
 
         <ChartCard
           title="Sentiment par source"
-          subtitle="Sephora — indice moyen par plateforme"
+          subtitle="Sephora vs Nocibé — indice moyen par plateforme (0–100)"
           isLoading={!bySource.data && !bySource.error}
         >
-          <SentimentBySourceBars data={bySource.data ?? []} />
+          <SentimentBySourceBars data={bySource.data ?? []} mode="comparison" />
         </ChartCard>
 
         <ChartCard

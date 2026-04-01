@@ -191,11 +191,12 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} style={{ willChange: "transform" }}>
           <KPICard
             title="Tendance sentiment (7j)"
-            value={d7 == null ? null : Math.round(d7 * 10) / 10}
+            value={d7 == null || Math.abs(d7) < 0.5 ? null : Math.round(d7 * 10) / 10}
             valueSuffix=" pts"
             trend={sentimentTrend7d.data?.direction ?? null}
             trendValue={d7 ?? null}
             trendUnit="points"
+            trendLabelOverride={d7 != null && Math.abs(d7) < 0.5 ? "Stable" : null}
             icon={<TrendingUp className="size-5" />}
             sparkline={trendSentimentSpark}
             isLoading={!sentimentTrend7d.data && !sentimentTrend7d.error}

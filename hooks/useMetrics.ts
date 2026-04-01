@@ -36,6 +36,7 @@ import {
   getHighSeverityMentions,
   getMentionVolume,
   getNegativeWordFrequencies,
+  getSentimentBySourceBoth,
   getSentimentBySourceSephora,
   getSentimentDistribution,
   getSentimentDistributionFiltered,
@@ -217,6 +218,13 @@ export function useSentimentBySourceSephora(range: DateRange) {
   return useSWR<{ source: string; score: number; count: number }[]>(
     ["sentimentBySource", range.from.toISOString(), range.to.toISOString()],
     async () => unwrap(await getSentimentBySourceSephora(range)),
+  );
+}
+
+export function useSentimentBySourceComparison(range: DateRange) {
+  return useSWR<{ source: string; sephora: number; nocibe: number; sephoraCount: number; nocibeCount: number }[]>(
+    ["sentimentBySourceBoth", range.from.toISOString(), range.to.toISOString()],
+    async () => unwrap(await getSentimentBySourceBoth(range)),
   );
 }
 

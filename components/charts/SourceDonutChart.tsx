@@ -1,8 +1,7 @@
 "use client";
 
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { VoiceSharePoint } from "@/lib/types";
-import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 
 type Props = Readonly<{
   data: VoiceSharePoint[];
@@ -12,83 +11,108 @@ type Props = Readonly<{
 const SOURCE_COLORS: Record<string, string> = {
   Trustpilot: "#00b67a",
   Google: "#4285F4",
-  TikTok: "#000000",
+  TikTok: "#2D2D2D",
   Instagram: "#E1306C",
   LinkedIn: "#0A66C2",
   Reddit: "#FF4500",
 };
 
-export function SourceDonutChart({ data, marque }: Props) {
-  const pieData = data.map((d) => ({
-    name: d.source,
-    value: marque === "Sephora" ? d.sephora : d.nocibe,
-    color: SOURCE_COLORS[d.source] ?? "#9ca3af",
-  }));
+type CustomTooltipProps = Readonly<{
+  active?: boolean;
+  payload?: { payload?: { name: string; value: number; total: number; color: string } }[];
+}>;
 
-  const total = pieData.reduce((acc, p) => acc + p.value, 0);
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid var(--comex-border)",
+        borderRadius: 10,
+        padding: "8px 12px",
+        fontFamily: "DM Sans",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        fontSize: 13,
+      }}
+    >
+      <span style={{ fontWeight: 600, color: "var(--comex-text)" }}>{d.name}</span>
+      <span style={{ marginLeft: 8, fontFamily: "DM Mono", color: "var(--text-muted)" }}>
+        {d.value} signaux
+      </span>
+      <span style={{ marginLeft: 8, color: d.color, fontWeight: 600 }}>
+        {d.total ? `${Math.round((d.value / d.total) * 100)}%` : ""}
+      </span>
+    </div>
+  );
+}
+
+export function SourceDonutChart({ data, marque }: Props) {
+  const sorted = [...data]
+    .map((d) => ({
+      name: d.source,
+      value: marque === "Sephora" ? d.sephora : d.nocibe,
+      color: SOURCE_COLORS[d.source] ?? "#9ca3af",
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const total = sorted.reduce((acc, p) => acc + p.value, 0);
+  const chartData = sorted.map((p) => ({ ...p, total }));
 
   return (
-    <div className="relative h-[280px] w-full min-h-[260px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Tooltip
-            contentStyle={{
-              borderRadius: 12,
-              border: "1px solid var(--comex-border)",
-              background: "#FFFFFF",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-              padding: 12,
-              fontFamily: "DM Sans",
-            }}
-          />
-          <Pie
-            data={pieData}
-            dataKey="value"
-            nameKey="name"
-            innerRadius={68}
-            outerRadius={100}
-            paddingAngle={3}
-            stroke="rgba(255,255,255,1)"
-            strokeWidth={2}
-            isAnimationActive={true}
-            animationDuration={600}
-            animationEasing="ease-out"
-          >
-            {pieData.map((p) => (
-              <Cell key={p.name} fill={p.color} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-
-      <div
-        className="pointer-events-none absolute inset-0 grid place-items-center"
-        style={{ transform: "translateY(6px)" }}
-      >
-        <div className="flex flex-col items-center gap-0.5">
-          <AnimatedCounter
-            value={total}
-            duration={600}
-            decimals={0}
-            className="font-mono text-[26px] font-medium text-[var(--comex-text)]"
-          />
-          <div className="text-[11px] text-gray-500">signaux</div>
-        </div>
+    <div className="w-full">
+      <div className="mb-2 flex items-center justify-between px-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+          Total
+        </span>
+        <span className="font-mono text-sm font-semibold text-[var(--comex-text)]">
+          {total.toLocaleString("fr-FR")} signaux
+        </span>
       </div>
 
-      <div
-        className="absolute bottom-2 left-0 right-0 grid grid-cols-2 gap-2 px-4"
-        style={{ fontFamily: "DM Sans" }}
-      >
-        {pieData.map((p) => (
-          <div key={p.name} className="flex items-center gap-2 text-xs">
-            <span className="size-2 shrink-0 rounded-full" style={{ background: p.color }} />
-            <span className="truncate text-gray-600">{p.name}</span>
-            <span className="ml-auto font-semibold tabular-nums text-gray-900">
-              {total ? Math.round((p.value / total) * 100) : 0}% — {p.value}
-            </span>
-          </div>
-        ))}
+      <div className="h-[260px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            layout="vertical"
+            data={chartData}
+            margin={{ top: 4, right: 56, left: 8, bottom: 4 }}
+            barCategoryGap="20%"
+          >
+            <XAxis type="number" hide domain={[0, "dataMax"]} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={76}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 12, fontFamily: "DM Sans", fill: "#374151", fontWeight: 500 }}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+            <Bar
+              dataKey="value"
+              radius={[0, 6, 6, 0]}
+              isAnimationActive
+              animationDuration={600}
+              animationEasing="ease-out"
+            >
+              {chartData.map((p) => (
+                <Cell key={p.name} fill={p.color} fillOpacity={0.85} />
+              ))}
+              <LabelList
+                dataKey="value"
+                position="right"
+                offset={8}
+                formatter={(v: unknown) => {
+                  const num = typeof v === "number" ? v : 0;
+                  return total ? `${Math.round((num / total) * 100)}%` : "";
+                }}
+                style={{ fontSize: 11, fontFamily: "DM Mono", fill: "#6b7280", fontWeight: 500 }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

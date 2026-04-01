@@ -789,6 +789,51 @@ export async function getSentimentBySourceSephora(range: DateRange): Promise<
   }
 }
 
+/**
+ * Avg sentiment index par source pour les deux marques — pour comparaison directe.
+ */
+export async function getSentimentBySourceBoth(range: DateRange): Promise<
+  Result<{ source: string; sephora: number; nocibe: number; sephoraCount: number; nocibeCount: number }[]>
+> {
+  try {
+    const [sephRows, nociRows] = await Promise.all([
+      fetchSignals(range, { brand: "sephora" }),
+      fetchSignals(range, { brand: "nocibe" }),
+    ]);
+
+    const bySrc = new Map<string, { sephSum: number; sephN: number; nociSum: number; nociN: number }>();
+    const ensure = (src: string) => {
+      if (!bySrc.has(src)) bySrc.set(src, { sephSum: 0, sephN: 0, nociSum: 0, nociN: 0 });
+      return bySrc.get(src)!;
+    };
+
+    for (const r of sephRows) {
+      const a = ensure(displaySignalSource(r.source));
+      a.sephSum += sentimentScoreToIndex(r.sentiment_score);
+      a.sephN += 1;
+    }
+    for (const r of nociRows) {
+      const a = ensure(displaySignalSource(r.source));
+      a.nociSum += sentimentScoreToIndex(r.sentiment_score);
+      a.nociN += 1;
+    }
+
+    const out = [...bySrc.entries()]
+      .map(([source, v]) => ({
+        source,
+        sephora: v.sephN ? Math.round(v.sephSum / v.sephN) : 0,
+        nocibe: v.nociN ? Math.round(v.nociSum / v.nociN) : 0,
+        sephoraCount: v.sephN,
+        nocibeCount: v.nociN,
+      }))
+      .sort((a, b) => Math.min(a.sephora, a.nocibe) - Math.min(b.sephora, b.nocibe));
+
+    return { ok: true, data: out };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
 export async function getTopNegativeVerbatims(
   range: DateRange,
   limit: number,

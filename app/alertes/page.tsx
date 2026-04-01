@@ -5,9 +5,6 @@ import { motion } from "framer-motion";
 import { useSWRConfig } from "swr";
 import {
   CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceLine,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -21,7 +18,6 @@ import { VerbatimFeed } from "@/components/sections/VerbatimFeed";
 import {
   useActiveAlertsCount24h,
   useAlertTableRows,
-  useAlertVelocityWeekly,
   useDefaultDateRange,
   useMentionVolume,
   useSentimentIndex,
@@ -29,21 +25,18 @@ import {
   useWeakSignalsScatter,
 } from "@/hooks/useMetrics";
 import { useRealtimeMentions } from "@/hooks/useRealtime";
-import { subDays } from "date-fns";
-
-const CRITICAL_WEEKLY = 10;
+import { format, subDays } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function AlertesPage() {
   useRealtimeMentions({ enabled: true });
   const { mutate } = useSWRConfig();
   const range = useDefaultDateRange();
-  const last3m = useMemo(() => ({ from: subDays(new Date(), 90), to: new Date() }), []);
   const sephoraSent = useSentimentIndex("Sephora", range);
   const nocibeSent = useSentimentIndex("Nocibé", range);
   const sephoraVolume = useMentionVolume("Sephora", range);
   const activeCount = useActiveAlertsCount24h();
   const rows = useAlertTableRows(range);
-  const velocity = useAlertVelocityWeekly(last3m);
   const weak = useWeakSignalsScatter(range);
   const [checked, setChecked] = useState(() => new Date().toISOString());
   const [resolvedLocally, setResolvedLocally] = useState<Set<string>>(() => new Set());
@@ -137,7 +130,7 @@ export default function AlertesPage() {
                           className={`border-t ${critical ? "bg-red-50/80" : vigil ? "bg-amber-50/60" : ""}`}
                         >
                           <td className="py-2 pr-2 whitespace-nowrap text-gray-600">
-                            {new Date(r.date).toLocaleString("fr-FR")}
+                            {format(new Date(r.date), "d MMM yyyy", { locale: fr })}
                           </td>
                           <td className="py-2 pr-2">{r.source}</td>
                           <td className="py-2 pr-2 capitalize">{r.theme}</td>
@@ -162,21 +155,6 @@ export default function AlertesPage() {
               </table>
             </div>
           )}
-        </ChartCard>
-
-        <ChartCard title="Vélocité des alertes" subtitle="3 mois — seuil critique hebdomadaire" isLoading={!velocity.data && !velocity.error}>
-          <div className="h-[260px] w-full min-h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={velocity.data ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} tickFormatter={(w) => w.slice(5)} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <ReferenceLine y={CRITICAL_WEEKLY} stroke="#ef4444" strokeDasharray="4 4" label="Seuil critique" />
-                <Line type="monotone" dataKey="count" stroke="var(--comex-bordeaux)" strokeWidth={2} dot />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
         </ChartCard>
 
         <ChartCard title="Carte des signaux faibles" subtitle="Volume ↑ et sentiment ↓ (danger en bas à droite)" isLoading={!weak.data && !weak.error}>
