@@ -12,7 +12,6 @@ type Props = Readonly<{
 }>;
 
 const SOURCE_COLORS: Record<string, string> = {
-  Trustpilot: "#00b67a",
   Google: "#4285F4",
   TikTok: "#1a1a2e",
   Instagram: "#E1306C",
@@ -21,7 +20,6 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 const SOURCE_ICONS: Record<string, string> = {
-  Trustpilot: "★",
   Google: "G",
   TikTok: "♪",
   Instagram: "◎",

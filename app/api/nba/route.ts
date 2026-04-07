@@ -189,7 +189,7 @@ function buildFallbackNBA(..._args: any[]) {
       {
         id: "nba-6",
         title: "Campagne réponse aux avis négatifs",
-        description: "Répondre systématiquement aux avis < 3 étoiles sur Trustpilot et Google dans les 24h.",
+        description: "Répondre systématiquement aux avis < 3 étoiles sur Google et les autres plateformes suivies dans les 24h.",
         priority: "medium",
         category: "communication",
         impact: "+0.3 pts de note moyenne",

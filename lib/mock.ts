@@ -21,14 +21,7 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-const SOURCES: readonly SignalSource[] = [
-  "trustpilot",
-  "google",
-  "tiktok",
-  "instagram",
-  "linkedin",
-  "reddit",
-];
+const SOURCES: readonly SignalSource[] = ["google", "tiktok", "instagram", "linkedin", "reddit"];
 
 const THEMES: readonly ThemeToken[] = [
   "livraison",

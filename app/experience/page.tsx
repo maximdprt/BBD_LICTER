@@ -22,7 +22,6 @@ const SENT_COLORS: Record<Sentiment, string> = {
 };
 
 const PLATFORMS: { slug: SignalSource; label: string }[] = [
-  { slug: "trustpilot", label: "Trustpilot" },
   { slug: "google", label: "Google" },
   { slug: "tiktok", label: "TikTok" },
   { slug: "instagram", label: "Instagram" },

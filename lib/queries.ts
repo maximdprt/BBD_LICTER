@@ -119,7 +119,8 @@ async function fetchSignals(range: DateRange, where?: SignalWhere): Promise<Sign
       "id,source,brand,date,raw_text,sentiment,sentiment_score,themes,platform_rating,is_alert,summary_fr,created_at,resolved",
     )
     .gte("date", iso(range.from))
-    .lte("date", iso(range.to));
+    .lte("date", iso(range.to))
+    .neq("source", "trustpilot");
   if (where?.brand) q = q.eq("brand", where.brand);
   if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
   if (where?.sources?.length) q = q.in("source", where.sources);
@@ -217,14 +218,7 @@ export async function getSentimentSparkline30d(marque: Marque): Promise<Result<{
 export async function getVoiceShareByPlatform(range: DateRange): Promise<Result<VoiceSharePoint[]>> {
   try {
     const mentions = await fetchSignals(range);
-    const sources: SignalSource[] = [
-      "trustpilot",
-      "google",
-      "tiktok",
-      "instagram",
-      "linkedin",
-      "reddit",
-    ];
+    const sources: SignalSource[] = ["google", "tiktok", "instagram", "linkedin", "reddit"];
     const counts = new Map<string, number>();
 
     for (const m of mentions) {
@@ -529,14 +523,7 @@ export async function getMentionVolume(marque: Marque, range: DateRange): Promis
   }
 }
 
-const SIGNAL_SOURCES_LIST: SignalSource[] = [
-  "trustpilot",
-  "google",
-  "tiktok",
-  "instagram",
-  "linkedin",
-  "reddit",
-];
+const SIGNAL_SOURCES_LIST: SignalSource[] = ["google", "tiktok", "instagram", "linkedin", "reddit"];
 
 /**
  * Requête paginée :
@@ -556,7 +543,8 @@ export async function getVerbatims(
         "id,source,brand,date,raw_text,sentiment,sentiment_score,themes,platform_rating,is_alert,summary_fr,created_at,resolved",
       )
       .order("sentiment_score", { ascending: true })
-      .order("date", { ascending: false });
+      .order("date", { ascending: false })
+      .neq("source", "trustpilot");
 
     if (filters.marque) q = q.eq("brand", marqueToBrand(filters.marque));
     if (filters.sentiment) q = q.eq("sentiment", sentimentUiToDb(filters.sentiment));

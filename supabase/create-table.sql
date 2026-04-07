@@ -6,7 +6,7 @@
 -- 1. Créer la table
 CREATE TABLE IF NOT EXISTS public.signals (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  source      TEXT NOT NULL CHECK (source IN ('trustpilot','google','tiktok','instagram','linkedin','reddit')),
+  source      TEXT NOT NULL CHECK (source IN ('google','tiktok','instagram','linkedin','reddit')),
   brand       TEXT NOT NULL CHECK (brand IN ('sephora','nocibe')),
   date        TIMESTAMPTZ NOT NULL DEFAULT now(),
   raw_text    TEXT NOT NULL DEFAULT '',

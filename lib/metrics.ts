@@ -36,7 +36,6 @@ export function sentimentDbToUi(s: SignalSentiment): Sentiment {
 }
 
 const SOURCE_LABELS: Record<SignalSource, string> = {
-  trustpilot: "Trustpilot",
   google: "Google",
   tiktok: "TikTok",
   instagram: "Instagram",

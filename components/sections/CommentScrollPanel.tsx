@@ -2,11 +2,10 @@
 
 import { cn } from "@/lib/cn";
 import type { MentionRow } from "@/lib/types";
-import { Globe, Linkedin, Music2, ShieldCheck, Instagram, MessageSquare } from "lucide-react";
+import { Globe, Linkedin, Music2, Instagram, MessageSquare } from "lucide-react";
 
 const SOURCE_LABELS: Record<string, string> = {
   google: "Google",
-  trustpilot: "Trustpilot",
   tiktok: "TikTok",
   instagram: "Instagram",
   linkedin: "LinkedIn",
@@ -17,7 +16,6 @@ function SourceIcon({ source }: { source: string }) {
   const cls = "size-4 text-black";
   const s = source.toLowerCase();
   if (s === "tiktok") return <Music2 className={cls} />;
-  if (s === "trustpilot") return <ShieldCheck className={cls} />;
   if (s === "instagram") return <Instagram className={cls} />;
   if (s === "linkedin") return <Linkedin className={cls} />;
   if (s === "reddit") return <MessageSquare className={cls} />;
@@ -47,11 +45,11 @@ type Props = Readonly<{
 export function CommentScrollPanel({ rows, isLoading, className, maxHeight = "420px" }: Props) {
   const FALLBACK = [
     { id: "f1", source: "google", marque: "Sephora", texte: "L'accueil en magasin était excellent, conseils ultra précis.", sentiment: "positif" as const, note: 5, theme: "conseil", date: new Date().toISOString() },
-    { id: "f2", source: "trustpilot", marque: "Sephora", texte: "Livraison rapide et emballage impeccable. Très satisfaite.", sentiment: "positif" as const, note: 5, theme: "livraison", date: new Date().toISOString() },
+    { id: "f2", source: "google", marque: "Sephora", texte: "Livraison rapide et emballage impeccable. Très satisfaite.", sentiment: "positif" as const, note: 5, theme: "livraison", date: new Date().toISOString() },
     { id: "f3", source: "instagram", marque: "Sephora", texte: "Les recommandations personnalisées m'ont aidé à trouver mon fond de teint.", sentiment: "positif" as const, note: 4, theme: "conseil", date: new Date().toISOString() },
     { id: "f4", source: "google", marque: "Sephora", texte: "Expérience correcte, quelques retards sur la disponibilité produits.", sentiment: "neutre" as const, note: 3, theme: "stock", date: new Date().toISOString() },
     { id: "f5", source: "tiktok", marque: "Sephora", texte: "Application fluide, parcours d'achat agréable et intuitif.", sentiment: "positif" as const, note: 4, theme: "application", date: new Date().toISOString() },
-    { id: "f6", source: "trustpilot", marque: "Sephora", texte: "Service client réactif. Problème résolu en moins de 24h.", sentiment: "positif" as const, note: 5, theme: "SAV", date: new Date().toISOString() },
+    { id: "f6", source: "linkedin", marque: "Sephora", texte: "Service client réactif. Problème résolu en moins de 24h.", sentiment: "positif" as const, note: 5, theme: "SAV", date: new Date().toISOString() },
   ];
 
   const items: { id: string; source: string; marque: string; texte: string; sentiment: string; note: number | null; theme?: string }[] =

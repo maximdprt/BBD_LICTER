@@ -1,6 +1,5 @@
 /** Sources brutes Supabase (table `signals`). */
 export type SignalSource =
-  | "trustpilot"
   | "google"
   | "tiktok"
   | "instagram"
