@@ -36,10 +36,10 @@ type NBAPayload = {
 };
 
 const PRIORITY_CONFIG = {
-  critical: { label: "Critique", bg: "bg-red-50", border: "border-red-200", text: "text-red-700", badge: "bg-red-100 text-red-800", dot: "bg-red-500" },
-  high: { label: "Haute", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-100 text-amber-800", dot: "bg-amber-500" },
-  medium: { label: "Moyenne", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", badge: "bg-blue-100 text-blue-800", dot: "bg-blue-500" },
-  low: { label: "Basse", bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-600", badge: "bg-gray-100 text-gray-700", dot: "bg-gray-400" },
+  critical: { label: "Critique", bg: "bg-red-50", border: "border-red-200", text: "text-red-700", badge: "bg-red-100 text-red-800", dot: "bg-red-500", ring: "ring-red-500" },
+  high: { label: "Haute", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-100 text-amber-800", dot: "bg-amber-500", ring: "ring-amber-500" },
+  medium: { label: "Moyenne", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", badge: "bg-blue-100 text-blue-800", dot: "bg-blue-500", ring: "ring-blue-500" },
+  low: { label: "Basse", bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-600", badge: "bg-gray-100 text-gray-700", dot: "bg-gray-400", ring: "ring-gray-400" },
 };
 
 const CATEGORY_CONFIG: Record<NBAAction["category"], { label: string; icon: typeof Zap; color: string }> = {
@@ -133,9 +133,8 @@ export default function NextBestActionsPage() {
                 type="button"
                 onClick={() => setFilter(filter === p ? "all" : p)}
                 className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
-                  filter === p ? `${cfg.bg} ${cfg.border} ring-2 ring-offset-1` : "border-gray-100 bg-white hover:bg-gray-50"
+                  filter === p ? `${cfg.bg} ${cfg.border} ${cfg.ring} ring-2 ring-offset-1` : "border-gray-100 bg-white hover:bg-gray-50"
                 }`}
-                style={filter === p ? { ringColor: cfg.dot.replace("bg-", "") } : undefined}
               >
                 <span className={`size-3 rounded-full ${cfg.dot}`} />
                 <div>
