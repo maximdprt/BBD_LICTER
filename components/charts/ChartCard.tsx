@@ -8,37 +8,54 @@ type Props = Readonly<{
   children: ReactNode;
   isLoading?: boolean;
   className?: string;
+  accent?: "gold" | "green" | "none";
 }>;
 
-export function ChartCard({ title, subtitle, right, children, isLoading, className }: Props) {
+const ACCENT_GRADIENT: Record<string, string> = {
+  gold: "linear-gradient(90deg, #C9A96E 0%, #D4B87A 60%, transparent 100%)",
+  green: "linear-gradient(90deg, #00A651 0%, #4DC47D 60%, transparent 100%)",
+  none: "transparent",
+};
+
+export function ChartCard({ title, subtitle, right, children, isLoading, className, accent = "gold" }: Props) {
+  const accentBar = ACCENT_GRADIENT[accent] ?? ACCENT_GRADIENT.gold;
+
   return (
     <section
-      className={cn("relative overflow-hidden", className)}
+      className={cn("relative overflow-hidden transition-shadow duration-200 hover:shadow-md", className)}
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--border)",
         borderRadius: "var(--radius-card)",
-        padding: "28px 32px",
+        padding: "28px 28px 24px",
         boxShadow: "var(--shadow-card)",
       }}
     >
-      {/* Gold accent top line */}
+      {/* Accent top line */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-[2px]"
-        style={{ background: "linear-gradient(90deg, #C9A96E, transparent 60%)" }}
+        className="absolute inset-x-0 top-0 h-[3px]"
+        style={{ background: accentBar }}
       />
 
-      <div className="flex items-start justify-between gap-4">
+      {/* Subtle top-right glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full opacity-[0.04]"
+        style={{ background: accent === "green" ? "#00A651" : "#C9A96E", filter: "blur(40px)" }}
+      />
+
+      {/* Header */}
+      <div className="relative flex items-start justify-between gap-4 mb-6">
         <div className="min-w-0">
           <div
-            className="text-xs font-semibold uppercase tracking-[0.12em]"
-            style={{ color: "var(--text-muted)" }}
+            className="text-[11px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: "var(--text-muted)", marginBottom: 5 }}
           >
             {title}
           </div>
           {subtitle ? (
-            <div className="mt-1 text-[13px]" style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
+            <div className="text-[13px] leading-snug" style={{ color: "var(--text-secondary)" }}>
               {subtitle}
             </div>
           ) : null}
@@ -46,9 +63,10 @@ export function ChartCard({ title, subtitle, right, children, isLoading, classNa
         {right ? <div className="shrink-0">{right}</div> : null}
       </div>
 
-      <div className="mt-4">
+      {/* Content */}
+      <div>
         {isLoading ? (
-          <div className="skeleton h-[260px] w-full rounded-sm" />
+          <div className="skeleton h-[260px] w-full rounded-xl" />
         ) : (
           children
         )}

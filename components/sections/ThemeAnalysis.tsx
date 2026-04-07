@@ -13,13 +13,11 @@ type Props = Readonly<{
 function sentimentColor(s: string): string {
   if (s === "négatif") return "#ef4444";
   if (s === "positif") return "#22c55e";
-  return "#f59e0b"; // neutre → ambre
+  return "#f59e0b";
 }
 
-function sentimentLabel(s: string): string {
-  if (s === "négatif") return "négatif";
-  if (s === "positif") return "positif";
-  return "neutre";
+function sentimentGradientId(theme: string, s: string): string {
+  return `themeGrad-${theme.replace(/\s/g, "-")}-${s}`;
 }
 
 type TooltipProps = Readonly<{
@@ -34,46 +32,48 @@ function ThemeTooltip({ active, payload }: TooltipProps) {
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid var(--comex-border)",
-        borderRadius: 10,
-        padding: "8px 12px",
-        fontFamily: "DM Sans",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        background: "rgba(255,255,255,0.98)",
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: "10px 14px",
+        fontFamily: "DM Sans, sans-serif",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
         fontSize: 13,
       }}
     >
-      <span style={{ fontWeight: 600, color: "var(--comex-text)", textTransform: "capitalize" }}>
-        {d.theme}
-      </span>
-      <div style={{ marginTop: 4, display: "flex", gap: 8, alignItems: "center" }}>
-        <span style={{ color: "#6b7280" }}>{d.count} mentions</span>
+      <span style={{ fontWeight: 700, color: "#111827", textTransform: "capitalize" }}>{d.theme}</span>
+      <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center" }}>
+        <span style={{ color: "#6b7280", fontSize: 12 }}>{d.count} mentions</span>
         <span
           style={{
             borderRadius: 999,
-            padding: "1px 8px",
+            padding: "2px 10px",
             fontSize: 11,
-            fontWeight: 600,
-            background: sentimentColor(d.dominantSentiment) + "22",
+            fontWeight: 700,
+            background: sentimentColor(d.dominantSentiment) + "20",
             color: sentimentColor(d.dominantSentiment),
+            textTransform: "capitalize",
           }}
         >
-          {sentimentLabel(d.dominantSentiment)}
+          {d.dominantSentiment}
         </span>
       </div>
     </div>
   );
 }
 
+const SENTIMENT_STOPS: Record<string, [string, string]> = {
+  négatif: ["#ef4444", "#fca5a5"],
+  positif: ["#22c55e", "#86efac"],
+  neutre: ["#f59e0b", "#fcd34d"],
+};
+
 export function ThemeAnalysis({ data, className }: Props) {
   const top = data.slice(0, 5);
 
   if (top.length === 0) {
     return (
-      <div
-        className={cn("rounded-2xl border border-border bg-[var(--bg-card)] p-4 text-sm")}
-        style={{ color: "var(--text-muted)" }}
-      >
+      <div className={cn("rounded-2xl border border-border bg-[var(--bg-card)] p-4 text-sm text-[var(--text-muted)]")}>
         Aucun thème sur la période.
       </div>
     );
@@ -84,60 +84,57 @@ export function ThemeAnalysis({ data, className }: Props) {
     count: t.count,
     dominantSentiment: t.dominantSentiment,
     color: sentimentColor(t.dominantSentiment),
+    gradId: sentimentGradientId(t.theme, t.dominantSentiment),
   }));
 
+  const maxCount = Math.max(1, ...chartData.map((d) => d.count));
+
   return (
-    <div className={cn("h-[280px] w-full", className)}>
-      <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={80}>
-        <BarChart
-          data={chartData}
-          layout="vertical"
-          margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
-        >
-          <XAxis type="number" hide />
-          <YAxis
-            type="category"
-            dataKey="theme"
-            width={76}
-            tickLine={false}
-            axisLine={false}
-            tick={{ fontFamily: "DM Sans", fontSize: 12, fill: "#374151", fontWeight: 500 }}
-          />
+    <div className={cn("w-full", className)}>
+      {/* Custom bars */}
+      <div className="space-y-3 px-1">
+        {chartData.map((d, i) => {
+          const pct = Math.round((d.count / maxCount) * 100);
+          const stops = SENTIMENT_STOPS[d.dominantSentiment] ?? ["#9ca3af", "#d1d5db"];
+          return (
+            <div key={d.theme} className="flex items-center gap-3">
+              <div className="w-[72px] shrink-0 truncate text-right text-xs font-medium capitalize text-gray-700">
+                {d.theme}
+              </div>
+              <div className="relative flex-1 h-7 rounded-full overflow-hidden bg-gray-100">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${pct}%`,
+                    background: `linear-gradient(90deg, ${stops[0]}, ${stops[1]})`,
+                    opacity: 0.85,
+                    transitionDelay: `${i * 80}ms`,
+                  }}
+                />
+              </div>
+              <div className="flex w-[64px] shrink-0 items-center justify-end gap-2">
+                <span
+                  className="inline-block size-2 rounded-full"
+                  style={{ background: d.color }}
+                />
+                <span className="font-mono text-xs font-semibold text-gray-600">
+                  {d.count.toLocaleString("fr-FR")}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-          <Tooltip content={<ThemeTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
-
-          <Bar
-            dataKey="count"
-            isAnimationActive
-            animationDuration={800}
-            animationEasing="ease-out"
-            radius={[0, 6, 6, 0]}
-          >
-            {chartData.map((d) => (
-              <Cell key={d.theme} fill={d.color} fillOpacity={0.8} />
-            ))}
-            <LabelList
-              dataKey="count"
-              position="right"
-              offset={8}
-              style={{ fontFamily: "DM Mono", fontSize: 11, fill: "#6b7280", fontWeight: 500 }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-
-      {/* Légende sentiment */}
-      <div className="mt-1 flex items-center justify-end gap-4 pr-1">
+      {/* Legend */}
+      <div className="mt-5 flex items-center justify-end gap-4 pr-1">
         {[
           { label: "Positif", color: "#22c55e" },
           { label: "Neutre", color: "#f59e0b" },
           { label: "Négatif", color: "#ef4444" },
         ].map(({ label, color }) => (
-          <span key={label} className="inline-flex items-center gap-1 text-[10px] text-gray-500">
-            <span
-              className="inline-block size-2 rounded-full"
-              style={{ background: color, opacity: 0.8 }}
-            />
+          <span key={label} className="inline-flex items-center gap-1.5 text-[11px] text-gray-400">
+            <span className="inline-block size-2.5 rounded-full" style={{ background: color }} />
             {label}
           </span>
         ))}

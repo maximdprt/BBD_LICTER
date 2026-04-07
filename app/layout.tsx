@@ -17,7 +17,7 @@ import { MistralChatAgent } from "@/components/ai/MistralChatAgent";
 
 export const metadata: Metadata = {
   title: "SEPHORA Intel — Intelligence Stratégique",
-  description: "Dashboard Brand & Market Intelligence — Sephora vs Nocibé — Powered by Mistral AI",
+  description: "Dashboard Brand & Market Intelligence — Sephora vs Nocibé",
 };
 
 export default function RootLayout({

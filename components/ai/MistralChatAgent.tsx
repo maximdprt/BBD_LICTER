@@ -123,12 +123,7 @@ export function MistralChatAgent() {
                   <SephoraLogo size={28} className="text-[#C9A96E]" />
                   <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-black bg-emerald-400" />
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-white">SEPHORA Intel AI</div>
-                  <div className="text-[10px] font-medium tracking-wider text-[#C9A96E]">
-                    Powered by Mistral
-                  </div>
-                </div>
+                <div className="text-sm font-semibold text-white">SEPHORA Intel AI</div>
               </div>
               <div className="flex items-center gap-1">
                 <button

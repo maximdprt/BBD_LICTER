@@ -14,10 +14,19 @@ type Props = Readonly<{
 const SOURCE_COLORS: Record<string, string> = {
   Trustpilot: "#00b67a",
   Google: "#4285F4",
-  TikTok: "#2D2D2D",
+  TikTok: "#1a1a2e",
   Instagram: "#E1306C",
   LinkedIn: "#0A66C2",
   Reddit: "#FF4500",
+};
+
+const SOURCE_ICONS: Record<string, string> = {
+  Trustpilot: "★",
+  Google: "G",
+  TikTok: "♪",
+  Instagram: "◎",
+  LinkedIn: "in",
+  Reddit: "r/",
 };
 
 type CustomTooltipProps = Readonly<{
@@ -32,101 +41,141 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid var(--comex-border)",
-        borderRadius: 10,
-        padding: "8px 12px",
-        fontFamily: "DM Sans",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+        background: "rgba(255,255,255,0.98)",
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: "10px 14px",
+        fontFamily: "DM Sans, sans-serif",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
         fontSize: 13,
       }}
     >
-      <span style={{ fontWeight: 600, color: "var(--comex-text)" }}>{d.name}</span>
-      <span style={{ marginLeft: 8, fontFamily: "DM Mono", color: "var(--text-muted)" }}>
-        {d.value} signaux
-      </span>
-      <span style={{ marginLeft: 8, color: d.color, fontWeight: 600 }}>
-        {d.pct}%
-      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span style={{ width: 10, height: 10, borderRadius: 9999, background: d.color, display: "inline-block" }} />
+        <span style={{ fontWeight: 700, color: "#111827" }}>{d.name}</span>
+      </div>
+      <div style={{ color: "#6b7280", fontSize: 12 }}>
+        {d.value.toLocaleString("fr-FR")} signaux ·{" "}
+        <span style={{ fontWeight: 700, color: d.color }}>{d.pct}%</span>
+      </div>
     </div>
   );
 }
 
 export function SourceDonutChart({ data, marque, onSelectSource }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
+
   const sorted = [...data]
     .map((d) => ({
       name: d.source,
       value: marque === "Sephora" ? d.sephora : d.nocibe,
       color: SOURCE_COLORS[d.source] ?? "#9ca3af",
     }))
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value)
+    .filter((d) => d.value > 0);
 
   const total = sorted.reduce((acc, p) => acc + p.value, 0);
-  const chartData = sorted.map((p) => ({ ...p, total, pct: total ? Math.round((p.value / total) * 100) : 0 }));
+  const chartData = sorted.map((p) => ({
+    ...p,
+    total,
+    pct: total ? Math.round((p.value / total) * 100) : 0,
+  }));
+
   const active = chartData.find((d) => d.name === hovered) ?? null;
 
   return (
     <div className="w-full">
-      <div className="mb-2 flex items-center justify-between px-1">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-          Total
-        </span>
-        <span className="font-mono text-sm font-semibold text-(--comex-text)">
-          {total.toLocaleString("fr-FR")} signaux
-        </span>
+      {/* Total */}
+      <div className="mb-3 flex items-center justify-between px-1">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Total signaux</span>
+        <span className="font-mono text-sm font-bold text-gray-900">{total.toLocaleString("fr-FR")}</span>
       </div>
 
-      <div className="relative h-[260px] w-full">
+      {/* Donut */}
+      <div className="relative" style={{ height: 240 }}>
         <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={80}>
           <PieChart>
+            <defs>
+              {chartData.map((p) => (
+                <filter key={`shadow-${p.name}`} id={`shadow-${p.name}`}>
+                  <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={p.color} floodOpacity="0.3" />
+                </filter>
+              ))}
+            </defs>
             <Tooltip content={<CustomTooltip />} />
             <Pie
               data={chartData}
               dataKey="value"
               nameKey="name"
-              innerRadius={62}
-              outerRadius={108}
-              stroke="#fff"
-              strokeWidth={2}
+              innerRadius={68}
+              outerRadius={104}
+              paddingAngle={2}
+              stroke="none"
               isAnimationActive
-              animationDuration={800}
+              animationDuration={900}
+              animationEasing="ease-out"
               onMouseEnter={(p) => setHovered((p as { name: string }).name)}
               onMouseLeave={() => setHovered(null)}
             >
               {chartData.map((p) => (
-                <Cell key={p.name} fill={p.color} />
+                <Cell
+                  key={p.name}
+                  fill={p.color}
+                  opacity={hovered && hovered !== p.name ? 0.45 : 1}
+                  style={{ transition: "opacity 0.2s, filter 0.2s", filter: hovered === p.name ? `url(#shadow-${p.name})` : "none" }}
+                />
               ))}
             </Pie>
           </PieChart>
         </ResponsiveContainer>
+
+        {/* Center label */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           {active ? (
             <div className="text-center">
-              <div className="text-sm font-semibold">{active.name}</div>
-              <div className="text-xs text-gray-500">{active.pct}% • {active.value}</div>
+              <div
+                className="mx-auto mb-1 grid size-8 place-items-center rounded-full text-sm font-bold text-white"
+                style={{ background: active.color }}
+              >
+                {SOURCE_ICONS[active.name] ?? active.name[0]}
+              </div>
+              <div className="text-sm font-bold text-gray-900">{active.pct}%</div>
+              <div className="text-[11px] text-gray-500">{active.value.toLocaleString("fr-FR")}</div>
             </div>
           ) : (
             <div className="text-center">
-              <div className="text-xs uppercase text-gray-400">Total</div>
-              <div className="font-mono text-lg font-bold">{total.toLocaleString("fr-FR")}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Sources</div>
+              <div className="font-mono text-xl font-bold text-gray-900">{chartData.length}</div>
             </div>
           )}
         </div>
       </div>
-      <div className="mt-3 space-y-1.5">
+
+      {/* Legend rows */}
+      <div className="mt-3 space-y-1">
         {chartData.map((row) => (
           <button
             key={row.name}
             type="button"
             onClick={() => onSelectSource?.(row.name)}
-            className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-sm hover:bg-gray-50"
+            onMouseEnter={() => setHovered(row.name)}
+            onMouseLeave={() => setHovered(null)}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all hover:bg-gray-50"
+            style={{ opacity: hovered && hovered !== row.name ? 0.5 : 1 }}
           >
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-2.5">
               <span className="inline-block size-2.5 rounded-full" style={{ background: row.color }} />
-              {row.name}
+              <span className="font-medium text-gray-700">{row.name}</span>
             </span>
-            <span className="font-mono text-xs text-gray-600">{row.pct}% • {row.value}</span>
+            <span className="flex items-center gap-2">
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{ background: row.color + "18", color: row.color }}
+              >
+                {row.pct}%
+              </span>
+              <span className="font-mono text-xs text-gray-500">{row.value.toLocaleString("fr-FR")}</span>
+            </span>
           </button>
         ))}
       </div>

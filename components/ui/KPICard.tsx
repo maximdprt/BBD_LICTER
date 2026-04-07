@@ -92,8 +92,8 @@ export function KPICard({
     return icon;
   })();
 
-  const areaStroke = sparkColor ?? "#000000";
-  const areaFill = sparkColor ? `${sparkColor}15` : "rgba(0,0,0,0.04)";
+  const areaStroke = sparkColor ?? "#C9A96E";
+  const areaFill = sparkColor ? `${sparkColor}18` : "rgba(201,169,110,0.10)";
 
   const sentimentProgress =
     title === "Indice de Sentiment" && typeof value === "number"
@@ -102,14 +102,7 @@ export function KPICard({
 
   return (
     <motion.div
-      whileHover={
-        prefersReducedMotion
-          ? undefined
-          : {
-              y: -2,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(201,169,110,0.08)",
-            }
-      }
+      whileHover={prefersReducedMotion ? undefined : { y: -3, boxShadow: "0 12px 36px rgba(0,0,0,0.09), 0 2px 8px rgba(201,169,110,0.10)" }}
       whileTap={prefersReducedMotion ? undefined : { scale: 0.995 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn("group flex h-full flex-col transition-shadow duration-200", className)}
@@ -124,17 +117,24 @@ export function KPICard({
         position: "relative",
       }}
     >
-      {/* Gold accent line */}
+      {/* Gold top accent bar */}
       <div
         aria-hidden
-        className="absolute left-0 top-0 h-full w-[3px]"
-        style={{ background: "linear-gradient(180deg, #C9A96E, #C9A96E40)" }}
+        className="absolute inset-x-0 top-0 h-[3px]"
+        style={{ background: "linear-gradient(90deg, #C9A96E 0%, #D4B87A 50%, transparent 100%)" }}
       />
 
-      <div className="flex min-h-[130px] items-start justify-between gap-4">
+      {/* Subtle glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full opacity-[0.05]"
+        style={{ background: "#C9A96E", filter: "blur(32px)" }}
+      />
+
+      <div className="relative flex items-start justify-between gap-4" style={{ minHeight: 80 }}>
         <div className="min-w-0">
           <div
-            className="text-[11px] font-semibold uppercase tracking-widest"
+            className="text-[11px] font-bold uppercase tracking-widest"
             style={{ color: "var(--text-muted)", marginBottom: 10 }}
           >
             {title}
@@ -142,33 +142,28 @@ export function KPICard({
 
           {isLoading ? (
             <div>
-              <div className="skeleton mb-4 h-3 w-20" />
-              <div className="skeleton mb-3 h-12 w-28" />
+              <div className="skeleton mb-4 h-3 w-20 rounded" />
+              <div className="skeleton mb-3 h-10 w-28 rounded" />
             </div>
           ) : (
             <>
-              <div
-                className="flex flex-wrap items-start justify-between gap-3"
-                style={{ marginBottom: title === "Indice de Sentiment" ? 8 : 4 }}
-              >
+              <div className="flex flex-wrap items-start gap-3" style={{ marginBottom: sentimentProgress != null ? 8 : 4 }}>
                 <div className="flex flex-wrap items-center gap-2">
                   {value == null ? (
-                    <div className="text-[48px] font-bold leading-none text-gray-300">—</div>
+                    <div className="text-[44px] font-bold leading-none text-gray-200">—</div>
                   ) : typeof value === "string" ? (
-                    <div className="text-[48px] font-bold leading-none text-gray-900 tabular-nums">
-                      {value}
-                    </div>
+                    <div className="text-[44px] font-bold leading-none text-gray-900 tabular-nums">{value}</div>
                   ) : (
                     <AnimatedCounter
                       value={value}
-                      duration={prefersReducedMotion ? 0 : 500}
+                      duration={prefersReducedMotion ? 0 : 600}
                       decimals={0}
                       suffix={valueSuffix}
-                      className="font-mono text-[48px] font-bold leading-none text-gray-900 tabular-nums"
+                      className="font-mono text-[44px] font-bold leading-none text-gray-900 tabular-nums"
                     />
                   )}
 
-                  {sentimentHealth ? (
+                  {sentimentHealth && (
                     <span
                       className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
                       style={{
@@ -178,86 +173,83 @@ export function KPICard({
                     >
                       {healthBadge(sentimentHealth).label}
                     </span>
-                  ) : null}
+                  )}
                 </div>
 
-                {badge ? (
-                  (() => {
-                    const tone =
-                      normalizedTrend === "flat"
-                        ? "neutral"
-                        : badge.isPositive
-                          ? "positive"
-                          : "negative";
-                    const wrapStyle =
-                      tone === "positive"
-                        ? { background: "rgba(34,197,94,0.10)", color: "#16a34a" }
-                        : tone === "negative"
-                          ? { background: "rgba(239,68,68,0.10)", color: "#ef4444" }
-                          : { background: "var(--neutral-bg)", color: "var(--neutral)" };
-                    return (
-                      <div
-                        className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[12px] font-semibold"
-                        style={wrapStyle}
-                      >
-                        <badge.Icon className="size-3.5" />
-                        <span>{badge.label}</span>
-                      </div>
-                    );
-                  })()
-                ) : null}
+                {badge && (() => {
+                  const tone = normalizedTrend === "flat" ? "neutral" : badge.isPositive ? "positive" : "negative";
+                  const wrapStyle =
+                    tone === "positive" ? { background: "rgba(34,197,94,0.10)", color: "#16a34a" }
+                    : tone === "negative" ? { background: "rgba(239,68,68,0.10)", color: "#ef4444" }
+                    : { background: "rgba(156,163,175,0.12)", color: "#9ca3af" };
+                  return (
+                    <div
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold"
+                      style={wrapStyle}
+                    >
+                      <badge.Icon className="size-3.5" />
+                      <span>{badge.label}</span>
+                    </div>
+                  );
+                })()}
               </div>
 
-              {title === "Indice de Sentiment" && sentimentProgress != null ? (
+              {sentimentProgress != null && (
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
                   <motion.div
                     className="h-full rounded-full"
-                    style={{
-                      width: `${sentimentProgress}%`,
-                      background: "linear-gradient(90deg, #C9A96E, #D4B87A)",
-                    }}
+                    style={{ width: `${sentimentProgress}%`, background: "linear-gradient(90deg, #C9A96E, #D4B87A)" }}
                     initial={prefersReducedMotion ? false : { width: 0 }}
                     animate={{ width: `${sentimentProgress}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
                   />
                 </div>
-              ) : null}
+              )}
             </>
           )}
         </div>
 
-        {iconElement ? (
-          <div className="relative z-10 mt-0.5 grid size-10 place-items-center rounded-xl bg-black/[0.03]">
+        {iconElement && (
+          <div className="relative z-10 mt-0.5 grid size-11 shrink-0 place-items-center rounded-xl"
+            style={{ background: "rgba(201,169,110,0.10)", border: "1px solid rgba(201,169,110,0.20)" }}
+          >
             {iconElement}
           </div>
-        ) : null}
+        )}
       </div>
 
-      <div className="mt-2 h-[112px]">
+      <div className="mt-2 flex-1" style={{ minHeight: 100 }}>
         {children ? <div className="h-full">{children}</div> : <div className="h-full" />}
       </div>
 
-      <div className="mt-3 h-[44px]">
+      {/* Sparkline */}
+      <div className="mt-3" style={{ height: 48 }}>
         {isLoading ? (
           <div className="skeleton h-2 w-full rounded" />
         ) : sparkline && sparkline.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%" minWidth={80} minHeight={30}>
             <AreaChart data={sparkline} margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>
+              <defs>
+                <linearGradient id="kpiSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={areaStroke} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={areaStroke} stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
               <Area
                 type="monotone"
                 dataKey="value"
                 stroke={areaStroke}
-                fill={areaFill}
+                fill="url(#kpiSparkGrad)"
                 strokeWidth={2}
                 dot={false}
                 activeDot={false}
                 isAnimationActive={!prefersReducedMotion}
-                animationDuration={500}
+                animationDuration={600}
               />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full w-full rounded-xl bg-gray-50" />
+          <div className="h-full w-full rounded-xl" style={{ background: "rgba(0,0,0,0.02)" }} />
         )}
       </div>
     </motion.div>
