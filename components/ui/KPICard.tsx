@@ -9,20 +9,19 @@ import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 
-export type SparkPoint = Readonly<{
-  value: number;
-}>;
-
+export type SparkPoint = Readonly<{ value: number }>;
 export type SentimentHealthZone = "critical" | "moderate" | "excellent";
 
 type Props = Readonly<{
   title: string;
   value: number | string | null;
   valueSuffix?: string;
+  decimals?: number;
   trend?: "up" | "down" | "flat" | null;
   trendValue?: number | null;
   trendLabelOverride?: string | null;
   trendUnit?: "percent" | "points";
+  periodLabel?: string;
   icon?: ReactNode;
   sparkline?: SparkPoint[];
   sparkColor?: string;
@@ -32,23 +31,37 @@ type Props = Readonly<{
   sentimentHealth?: SentimentHealthZone | null;
 }>;
 
-function healthBadge(zone: SentimentHealthZone) {
-  const map = {
-    critical: { label: "Critique", bg: "rgba(239,68,68,0.10)", color: "#ef4444" },
-    moderate: { label: "Modéré", bg: "rgba(234,179,8,0.12)", color: "#ca8a04" },
-    excellent: { label: "Excellent", bg: "rgba(34,197,94,0.10)", color: "#22c55e" },
-  } as const;
-  return map[zone];
+const HEALTH = {
+  critical: { label: "Critique",  bg: "rgba(239,68,68,0.10)",   color: "#ef4444", bar: "#ef4444" },
+  moderate: { label: "Modéré",    bg: "rgba(234,179,8,0.12)",   color: "#ca8a04", bar: "#f59e0b" },
+  excellent:{ label: "Excellent", bg: "rgba(34,197,94,0.10)",   color: "#22c55e", bar: "#22c55e" },
+} as const;
+
+function MiniBar({ value, max = 100, color }: { value: number; max?: number; color: string }) {
+  const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  return (
+    <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-gray-100">
+      <motion.div
+        className="h-full rounded-full"
+        style={{ background: color }}
+        initial={{ width: 0 }}
+        animate={{ width: `${pct}%` }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      />
+    </div>
+  );
 }
 
 export function KPICard({
   title,
   value,
-  valueSuffix,
+  valueSuffix = "",
+  decimals = 0,
   trend,
   trendValue,
   trendLabelOverride,
   trendUnit = "percent",
+  periodLabel,
   icon,
   sparkline,
   sparkColor,
@@ -57,199 +70,172 @@ export function KPICard({
   className,
   sentimentHealth,
 }: Props) {
-  const prefersReducedMotion = useReducedMotion();
+  const reduce = useReducedMotion();
+
   const normalizedTrend: "up" | "down" | "flat" | null =
     trend ??
-    (trendValue == null
-      ? null
-      : Math.abs(trendValue) < 0.5
-        ? "flat"
-        : trendValue > 0
-          ? "up"
-          : "down");
+    (trendValue == null ? null : Math.abs(trendValue) < 0.5 ? "flat" : trendValue > 0 ? "up" : "down");
 
-  const badge =
-    trendValue == null || normalizedTrend == null
-      ? null
-      : {
-          label:
-            trendLabelOverride ??
-            (trendUnit === "points"
-              ? `${trendValue > 0 ? "+" : ""}${Math.round(trendValue * 10) / 10} pts (7j)`
-              : `${trendValue > 0 ? "+" : ""}${Math.round(trendValue * 10) / 10}%`),
-          isPositive: trendValue > 0,
-          Icon: normalizedTrend === "up" ? ArrowUpRight : normalizedTrend === "down" ? ArrowDownRight : Minus,
-        };
+  const trendLabel = (() => {
+    if (trendLabelOverride) return trendLabelOverride;
+    if (trendValue == null) return null;
+    const sign = trendValue > 0 ? "+" : "";
+    const rounded = Math.round(Math.abs(trendValue) * 10) / 10;
+    return trendUnit === "points" ? `${sign}${rounded} pts` : `${sign}${rounded}%`;
+  })();
 
-  const iconElement = (() => {
-    if (!icon) return null;
-    if (isValidElement(icon)) {
-      const iconEl = icon as ReactElement<{ className?: string }>;
-      return cloneElement(iconEl, {
-        className: cn(iconEl.props.className, "text-[#C9A96E]"),
-      });
-    }
-    return icon;
+  const trendStyle = normalizedTrend === "up"
+    ? { bg: "rgba(34,197,94,0.10)", color: "#16a34a" }
+    : normalizedTrend === "down"
+    ? { bg: "rgba(239,68,68,0.10)", color: "#ef4444" }
+    : { bg: "rgba(156,163,175,0.10)", color: "#9ca3af" };
+
+  const TrendIcon = normalizedTrend === "up" ? ArrowUpRight : normalizedTrend === "down" ? ArrowDownRight : Minus;
+
+  const iconEl = (() => {
+    if (!icon || !isValidElement(icon)) return icon;
+    const el = icon as ReactElement<{ className?: string }>;
+    return cloneElement(el, { className: cn(el.props.className, "text-[#C9A96E]") });
   })();
 
   const areaStroke = sparkColor ?? "#C9A96E";
-  const areaFill = sparkColor ? `${sparkColor}18` : "rgba(201,169,110,0.10)";
-
-  const sentimentProgress =
-    title === "Indice de Sentiment" && typeof value === "number"
-      ? Math.max(0, Math.min(100, value))
-      : null;
+  const sentimentPct = sentimentHealth && typeof value === "number" ? Math.max(0, Math.min(100, value)) : null;
 
   return (
     <motion.div
-      whileHover={prefersReducedMotion ? undefined : { y: -3, boxShadow: "0 12px 36px rgba(0,0,0,0.09), 0 2px 8px rgba(201,169,110,0.10)" }}
-      whileTap={prefersReducedMotion ? undefined : { scale: 0.995 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className={cn("group flex h-full flex-col transition-shadow duration-200", className)}
+      whileHover={reduce ? undefined : { y: -3, boxShadow: "0 16px 40px rgba(0,0,0,0.09), 0 2px 8px rgba(201,169,110,0.08)" }}
+      whileTap={reduce ? undefined : { scale: 0.995 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className={cn("flex flex-col overflow-hidden", className)}
       style={{
-        willChange: "transform",
         background: "var(--bg-card)",
         border: "1px solid var(--border)",
-        borderRadius: "var(--radius-card)",
-        padding: "24px 24px 20px",
+        borderRadius: 20,
+        padding: "22px 22px 18px",
         boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
         position: "relative",
+        willChange: "transform",
       }}
     >
-      {/* Gold top accent bar */}
+      {/* Top accent */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-[3px]"
-        style={{ background: "linear-gradient(90deg, #C9A96E 0%, #D4B87A 50%, transparent 100%)" }}
+        className="absolute inset-x-0 top-0 h-[3px] rounded-t-[20px]"
+        style={{ background: "linear-gradient(90deg, #C9A96E 0%, #D4B87A 45%, transparent 100%)" }}
       />
 
-      {/* Subtle glow */}
+      {/* Glow */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full opacity-[0.05]"
-        style={{ background: "#C9A96E", filter: "blur(32px)" }}
+        className="pointer-events-none absolute -right-10 -top-10 size-36 rounded-full opacity-[0.04]"
+        style={{ background: "#C9A96E", filter: "blur(28px)" }}
       />
 
-      <div className="relative flex items-start justify-between gap-4" style={{ minHeight: 80 }}>
+      {/* Header row */}
+      <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div
-            className="text-[11px] font-bold uppercase tracking-widest"
-            style={{ color: "var(--text-muted)", marginBottom: 10 }}
-          >
-            {title}
-          </div>
-
-          {isLoading ? (
-            <div>
-              <div className="skeleton mb-4 h-3 w-20 rounded" />
-              <div className="skeleton mb-3 h-10 w-28 rounded" />
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-start gap-3" style={{ marginBottom: sentimentProgress != null ? 8 : 4 }}>
-                <div className="flex flex-wrap items-center gap-2">
-                  {value == null ? (
-                    <div className="text-[44px] font-bold leading-none text-gray-200">—</div>
-                  ) : typeof value === "string" ? (
-                    <div className="text-[44px] font-bold leading-none text-gray-900 tabular-nums">{value}</div>
-                  ) : (
-                    <AnimatedCounter
-                      value={value}
-                      duration={prefersReducedMotion ? 0 : 600}
-                      decimals={0}
-                      suffix={valueSuffix}
-                      className="font-mono text-[44px] font-bold leading-none text-gray-900 tabular-nums"
-                    />
-                  )}
-
-                  {sentimentHealth && (
-                    <span
-                      className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                      style={{
-                        background: healthBadge(sentimentHealth).bg,
-                        color: healthBadge(sentimentHealth).color,
-                      }}
-                    >
-                      {healthBadge(sentimentHealth).label}
-                    </span>
-                  )}
-                </div>
-
-                {badge && (() => {
-                  const tone = normalizedTrend === "flat" ? "neutral" : badge.isPositive ? "positive" : "negative";
-                  const wrapStyle =
-                    tone === "positive" ? { background: "rgba(34,197,94,0.10)", color: "#16a34a" }
-                    : tone === "negative" ? { background: "rgba(239,68,68,0.10)", color: "#ef4444" }
-                    : { background: "rgba(156,163,175,0.12)", color: "#9ca3af" };
-                  return (
-                    <div
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold"
-                      style={wrapStyle}
-                    >
-                      <badge.Icon className="size-3.5" />
-                      <span>{badge.label}</span>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {sentimentProgress != null && (
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ width: `${sentimentProgress}%`, background: "linear-gradient(90deg, #C9A96E, #D4B87A)" }}
-                    initial={prefersReducedMotion ? false : { width: 0 }}
-                    animate={{ width: `${sentimentProgress}%` }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                  />
-                </div>
-              )}
-            </>
+          <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">{title}</div>
+          {periodLabel && (
+            <div className="mt-0.5 text-[11px] text-gray-400">{periodLabel}</div>
           )}
         </div>
-
-        {iconElement && (
-          <div className="relative z-10 mt-0.5 grid size-11 shrink-0 place-items-center rounded-xl"
-            style={{ background: "rgba(201,169,110,0.10)", border: "1px solid rgba(201,169,110,0.20)" }}
+        {iconEl && (
+          <div
+            className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl"
+            style={{ background: "rgba(201,169,110,0.10)", border: "1px solid rgba(201,169,110,0.18)" }}
           >
-            {iconElement}
+            {iconEl}
           </div>
         )}
       </div>
 
-      <div className="mt-2 flex-1" style={{ minHeight: 100 }}>
-        {children ? <div className="h-full">{children}</div> : <div className="h-full" />}
+      {/* Value block */}
+      <div className="relative mt-4">
+        {isLoading ? (
+          <div>
+            <div className="skeleton mb-2 h-3 w-16 rounded" />
+            <div className="skeleton h-12 w-32 rounded" />
+          </div>
+        ) : (
+          <>
+            {/* Main value */}
+            <div className="flex flex-wrap items-baseline gap-2">
+              {value == null ? (
+                <span className="font-mono text-[42px] font-bold leading-none text-gray-200">—</span>
+              ) : typeof value === "string" ? (
+                <span className="font-mono text-[42px] font-bold leading-none text-gray-900">{value}</span>
+              ) : (
+                <AnimatedCounter
+                  value={value}
+                  duration={reduce ? 0 : 700}
+                  decimals={decimals}
+                  suffix={valueSuffix}
+                  className="font-mono text-[42px] font-bold leading-none text-gray-900 tabular-nums"
+                />
+              )}
+              {sentimentHealth && (
+                <span
+                  className="mb-0.5 self-end rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                  style={{ background: HEALTH[sentimentHealth].bg, color: HEALTH[sentimentHealth].color }}
+                >
+                  {HEALTH[sentimentHealth].label}
+                </span>
+              )}
+            </div>
+
+            {/* Sentiment progress bar */}
+            {sentimentPct != null && (
+              <MiniBar value={sentimentPct} color={HEALTH[sentimentHealth!].bar} />
+            )}
+
+            {/* Trend badge */}
+            {(trendLabel || trendLabelOverride) && (
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                style={{ background: trendStyle.bg, color: trendStyle.color }}>
+                <TrendIcon className="size-3" />
+                <span>{trendLabel}</span>
+                {trendUnit === "points" && !trendLabelOverride && (
+                  <span className="opacity-60">/ 7j</span>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
+      {/* Children (ex: gauge) */}
+      {children && (
+        <div className="mt-4 flex-1">{children}</div>
+      )}
+
       {/* Sparkline */}
-      <div className="mt-3" style={{ height: 48 }}>
+      <div className="mt-4" style={{ height: 52 }}>
         {isLoading ? (
           <div className="skeleton h-2 w-full rounded" />
-        ) : sparkline && sparkline.length > 0 ? (
+        ) : sparkline && sparkline.length > 1 ? (
           <ResponsiveContainer width="100%" height="100%" minWidth={80} minHeight={30}>
             <AreaChart data={sparkline} margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>
               <defs>
-                <linearGradient id="kpiSparkGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={areaStroke} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={areaStroke} stopOpacity={0.0} />
+                <linearGradient id={`spark-${title.replace(/\s/g, "")}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={areaStroke} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={areaStroke} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <Area
                 type="monotone"
                 dataKey="value"
                 stroke={areaStroke}
-                fill="url(#kpiSparkGrad)"
+                fill={`url(#spark-${title.replace(/\s/g, "")})`}
                 strokeWidth={2}
                 dot={false}
                 activeDot={false}
-                isAnimationActive={!prefersReducedMotion}
-                animationDuration={600}
+                isAnimationActive={!reduce}
+                animationDuration={700}
               />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full w-full rounded-xl" style={{ background: "rgba(0,0,0,0.02)" }} />
+          <div className="h-full rounded-xl" style={{ background: "rgba(0,0,0,0.02)" }} />
         )}
       </div>
     </motion.div>

@@ -64,7 +64,7 @@ export default function DashboardPage() {
   const voiceSharePct =
     voiceTotals.sephora + voiceTotals.nocibe === 0
       ? null
-      : Math.round((voiceTotals.sephora / (voiceTotals.sephora + voiceTotals.nocibe)) * 100);
+      : Math.round((voiceTotals.sephora / (voiceTotals.sephora + voiceTotals.nocibe)) * 1000) / 10;
 
   const alertFlags = getAlertFlags({
     sentimentScore: sephoraSent.data?.score ?? null,
@@ -145,13 +145,16 @@ export default function DashboardPage() {
         animate="show"
         className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
       >
+        {/* KPI 1 — Indice de sentiment */}
         <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
             title="Indice de Sentiment"
-            value={sephoraSent.data?.score ?? null}
-            trendValue={d7 ?? null}
+            value={sephoraSent.data?.score != null ? Math.round(sephoraSent.data.score * 10) / 10 : null}
+            decimals={1}
+            trendValue={d7 != null ? Math.round(d7 * 10) / 10 : null}
             trendUnit="points"
             trend={sentimentTrend7d.data?.direction ?? null}
+            periodLabel="6 derniers mois · Sephora"
             icon={<Smile className="size-5" />}
             sparkline={spark30.data ?? []}
             sentimentHealth={sentimentHealthFromScore(sephoraSent.data?.score ?? null)}
@@ -164,23 +167,47 @@ export default function DashboardPage() {
           />
         </motion.div>
 
+        {/* KPI 2 — Volume de signaux */}
         <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
-            title="Volume total de signaux"
+            title="Volume de signaux"
             value={sephoraVolume.data?.total ?? null}
-            trendValue={sephoraVolume.data?.deltaPct ?? null}
+            decimals={0}
+            trendValue={
+              sephoraVolume.data?.deltaPct != null
+                ? Math.round(sephoraVolume.data.deltaPct * 10) / 10
+                : null
+            }
+            trendUnit="percent"
+            trendLabelOverride={
+              sephoraVolume.data?.deltaPct != null && Math.abs(sephoraVolume.data.deltaPct) < 0.5
+                ? "Stable vs période préc."
+                : undefined
+            }
+            periodLabel="6 derniers mois · Sephora"
             icon={<MessageSquare className="size-5" />}
             sparkline={volumeSpark}
+            sparkColor="#6366f1"
             isLoading={!sephoraVolume.data && !sephoraVolume.error}
             className="h-full"
           />
         </motion.div>
 
+        {/* KPI 3 — Part de voix */}
         <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
             title="Part de voix vs Nocibé"
-            value={null}
-            trendValue={voiceShareTrendValue}
+            value={voiceSharePct}
+            decimals={1}
+            valueSuffix="%"
+            trendValue={voiceShareTrendValue != null ? Math.round(voiceShareTrendValue * 10) / 10 : null}
+            trendUnit="points"
+            trendLabelOverride={
+              voiceShareTrendValue != null && Math.abs(voiceShareTrendValue) < 0.5
+                ? "Stable"
+                : undefined
+            }
+            periodLabel="6 derniers mois · vs Nocibé"
             icon={<PieChart className="size-5" />}
             sparkline={voiceShareSpark}
             sparkColor="#C9A96E"
@@ -191,17 +218,32 @@ export default function DashboardPage() {
           </KPICard>
         </motion.div>
 
+        {/* KPI 4 — Tendance 7j */}
         <motion.div variants={itemVariants} style={{ willChange: "transform" }} className="h-full">
           <KPICard
             title="Tendance sentiment (7j)"
-            value={d7 == null || Math.abs(d7) < 0.5 ? null : Math.round(d7 * 10) / 10}
+            value={d7 != null ? Math.round(d7 * 10) / 10 : null}
+            decimals={1}
             valueSuffix=" pts"
             trend={sentimentTrend7d.data?.direction ?? null}
-            trendValue={d7 ?? null}
+            trendValue={d7 != null ? Math.round(d7 * 10) / 10 : null}
             trendUnit="points"
-            trendLabelOverride={d7 != null && Math.abs(d7) < 0.5 ? "Stable" : null}
+            trendLabelOverride={
+              d7 == null ? null
+              : Math.abs(d7) < 0.5 ? "Stable — sans variation significative"
+              : d7 > 0 ? `Hausse · +${(Math.round(d7 * 10) / 10).toFixed(1)} pts`
+              : `Baisse · ${(Math.round(d7 * 10) / 10).toFixed(1)} pts`
+            }
+            periodLabel="Glissement 7 jours · Sephora"
             icon={<TrendingUp className="size-5" />}
             sparkline={trendSentimentSpark}
+            sparkColor={
+              (sentimentTrend7d.data?.direction ?? "flat") === "up"
+                ? "#22c55e"
+                : (sentimentTrend7d.data?.direction ?? "flat") === "down"
+                ? "#ef4444"
+                : "#9ca3af"
+            }
             isLoading={!sentimentTrend7d.data && !sentimentTrend7d.error}
             className="h-full"
           />
