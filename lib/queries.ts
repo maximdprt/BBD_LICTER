@@ -120,7 +120,8 @@ async function fetchSignals(range: DateRange, where?: SignalWhere): Promise<Sign
     )
     .gte("date", iso(range.from))
     .lte("date", iso(range.to))
-    .neq("source", "trustpilot");
+    .neq("source", "trustpilot")
+    .limit(100_000); // dépasse la limite Supabase par défaut de 1 000 lignes
   if (where?.brand) q = q.eq("brand", where.brand);
   if (where?.sentiment) q = q.eq("sentiment", where.sentiment);
   if (where?.sources?.length) q = q.in("source", where.sources);
@@ -502,22 +503,42 @@ export async function getWeeklyTrend(marque: Marque): Promise<Result<WeeklyTrend
 
 export async function getMentionVolume(marque: Marque, range: DateRange): Promise<Result<MentionVolume>> {
   try {
-    const current = await fetchSignals(range, { brand: marqueToBrand(marque) });
+    const supabase = getSupabaseClient();
+    const brand = marqueToBrand(marque);
     const durationDays = Math.max(
       1,
       Math.round((range.to.getTime() - range.from.getTime()) / (24 * 60 * 60 * 1000)),
     );
-    const prevRange: DateRange = {
-      from: subDays(range.from, durationDays),
-      to: subDays(range.to, durationDays),
-    };
-    const previous = await fetchSignals(prevRange, { brand: marqueToBrand(marque) });
+    const prevFrom = subDays(range.from, durationDays);
+    const prevTo = subDays(range.to, durationDays);
 
-    const prev = previous.length;
-    const curr = current.length;
-    const deltaPct = prev === 0 ? (curr === 0 ? 0 : null) : ((curr - prev) / prev) * 100;
+    const [{ count: curr, error: e1 }, { count: prev, error: e2 }] = await Promise.all([
+      supabase
+        .from("signals")
+        .select("id", { count: "exact", head: true })
+        .gte("date", iso(range.from))
+        .lte("date", iso(range.to))
+        .eq("brand", brand)
+        .neq("source", "trustpilot"),
+      supabase
+        .from("signals")
+        .select("id", { count: "exact", head: true })
+        .gte("date", iso(prevFrom))
+        .lte("date", iso(prevTo))
+        .eq("brand", brand)
+        .neq("source", "trustpilot"),
+    ]);
+    if (e1) throw new Error(e1.message);
+    if (e2) throw new Error(e2.message);
 
-    return { ok: true, data: { marque, total: curr, deltaPct } };
+    const total = curr ?? 0;
+    const prevTotal = prev ?? 0;
+    const deltaPct =
+      prevTotal === 0
+        ? total === 0 ? 0 : null
+        : Math.round(((total - prevTotal) / prevTotal) * 1000) / 10;
+
+    return { ok: true, data: { marque, total, deltaPct } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
   }
