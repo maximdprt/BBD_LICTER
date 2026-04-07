@@ -11,6 +11,8 @@ import {
   useDefaultDateRange,
   useSentimentBySourceComparison,
   useSentimentIndex,
+  useSentimentSparkline30d,
+  useSentimentTrend7d,
   useThemeWeekHeatmap,
   useTopNegativeVerbatims,
 } from "@/hooks/useMetrics";
@@ -21,6 +23,8 @@ export default function ReputationPage() {
   const range = useDefaultDateRange();
   const sentiment = useSentimentIndex("Sephora", range);
   const nocibe = useSentimentIndex("Nocibé", range);
+  const sparkline30d = useSentimentSparkline30d("Sephora");
+  const trend7d = useSentimentTrend7d("Sephora");
   const heatmap = useThemeWeekHeatmap(range, "Sephora");
   const bySource = useSentimentBySourceComparison(range);
   const [verbatimPeriod, setVerbatimPeriod] = useState<"week" | "month" | "all">("week");
@@ -40,9 +44,9 @@ export default function ReputationPage() {
 
   const urgency = (score?: number) => {
     if (score == null) return { label: "—", cls: "bg-gray-100 text-gray-600" };
-    if (score < -0.5) return { label: "🔴 Critique", cls: "bg-red-100 text-red-700" };
-    if (score < -0.3) return { label: "🟠 Élevé", cls: "bg-orange-100 text-orange-700" };
-    return { label: "🟡 Modéré", cls: "bg-amber-100 text-amber-700" };
+    if (score < -0.5) return { label: "Critique", cls: "bg-red-50 text-red-700 border border-red-200" };
+    if (score < -0.3) return { label: "Élevé", cls: "bg-amber-50 text-amber-700 border border-amber-200" };
+    return { label: "Modéré", cls: "bg-yellow-50 text-yellow-700 border border-yellow-200" };
   };
 
   return (
@@ -62,6 +66,8 @@ export default function ReputationPage() {
             <SentimentGauge
               value={sentiment.data?.score ?? null}
               competitorValue={nocibe.data?.score ?? null}
+              sparkline={sparkline30d.data ?? undefined}
+              trend7d={trend7d.data ?? undefined}
               size={280}
             />
           </div>
@@ -94,8 +100,10 @@ export default function ReputationPage() {
                 key={p}
                 type="button"
                 onClick={() => setVerbatimPeriod(p)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  verbatimPeriod === p ? "bg-(--comex-bordeaux) text-white" : "bg-gray-100 text-gray-600"
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  verbatimPeriod === p
+                    ? "bg-black text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 {p === "week" ? "Cette semaine" : p === "month" ? "Ce mois" : "Tout (6m)"}
@@ -105,47 +113,59 @@ export default function ReputationPage() {
           {!topNeg.data?.length ? (
             <p className="text-sm text-gray-500">Pas de verbatims pour cette période.</p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-(--comex-border)">
+            <div className="overflow-hidden rounded-xl border border-gray-100">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+                <thead className="bg-gray-50/80 text-[11px] uppercase tracking-wider text-gray-500">
                   <tr>
-                    <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2">Source</th>
-                    <th className="px-3 py-2">Thème</th>
-                    <th className="px-3 py-2">Urgence</th>
-                    <th className="px-3 py-2">Score</th>
-                    <th className="px-3 py-2">Extrait</th>
-                    <th className="px-3 py-2 text-right">Action</th>
+                    <th className="px-3 py-2.5">Date</th>
+                    <th className="px-3 py-2.5">Source</th>
+                    <th className="px-3 py-2.5">Thème</th>
+                    <th className="px-3 py-2.5">Urgence</th>
+                    <th className="px-3 py-2.5">Score</th>
+                    <th className="px-3 py-2.5">Extrait</th>
+                    <th className="px-3 py-2.5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedRows.map((r) => (
                     <tr
                       key={r.id}
-                      className="cursor-pointer border-t border-gray-100 hover:bg-pink-50/50"
+                      className="cursor-pointer border-t border-gray-50 transition-colors hover:bg-[#C9A96E]/[0.03]"
                     >
-                      <td className="px-3 py-2 whitespace-nowrap text-gray-600">
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">
                         {new Date(r.date).toLocaleDateString("fr-FR")}
                       </td>
-                      <td className="px-3 py-2">{r.source}</td>
-                      <td className="px-3 py-2 capitalize">{r.theme}</td>
-                      <td className="px-3 py-2">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${urgency(r.sentiment_score).cls}`}>{urgency(r.sentiment_score).label}</span>
+                      <td className="px-3 py-2.5">{r.source}</td>
+                      <td className="px-3 py-2.5 capitalize">{r.theme}</td>
+                      <td className="px-3 py-2.5">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${urgency(r.sentiment_score).cls}`}>
+                          {urgency(r.sentiment_score).label}
+                        </span>
                       </td>
-                      <td className="px-3 py-2 font-mono text-red-600">
+                      <td className="px-3 py-2.5 font-mono text-red-600">
                         {r.sentiment_score?.toFixed(2) ?? "—"}
                       </td>
-                      <td className="max-w-[320px] px-3 py-2 italic text-gray-600">
-                        <button type="button" className="text-left hover:underline" onClick={() => setExpanded((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
-                          return next;
-                        })}>
+                      <td className="max-w-[320px] px-3 py-2.5 text-gray-600">
+                        <button
+                          type="button"
+                          className="text-left hover:underline"
+                          onClick={() => setExpanded((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                            return next;
+                          })}
+                        >
                           {expanded.has(r.id) ? r.texte : `${(r.texte ?? "").slice(0, 120)}...`}
                         </button>
                       </td>
-                      <td className="px-3 py-2 text-right">
-                        <button type="button" className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold hover:bg-gray-50" onClick={() => setModal(r)}>Créer alerte</button>
+                      <td className="px-3 py-2.5 text-right">
+                        <button
+                          type="button"
+                          className="rounded-lg bg-black px-2.5 py-1 text-xs font-semibold text-white transition-all hover:bg-gray-800"
+                          onClick={() => setModal(r)}
+                        >
+                          Détail
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -154,10 +174,27 @@ export default function ReputationPage() {
             </div>
           )}
           <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span>Affichage {Math.min((topNeg.data?.length ?? 0), page * 10 + 1)}-{Math.min((topNeg.data?.length ?? 0), (page + 1) * 10)} sur {topNeg.data?.length ?? 0}</span>
+            <span>
+              Affichage {Math.min((topNeg.data?.length ?? 0), page * 10 + 1)}-
+              {Math.min((topNeg.data?.length ?? 0), (page + 1) * 10)} sur {topNeg.data?.length ?? 0}
+            </span>
             <div className="flex gap-2">
-              <button type="button" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))} className="rounded border border-gray-200 px-2 py-1 disabled:opacity-40">Précédent</button>
-              <button type="button" disabled={(page + 1) * 10 >= (topNeg.data?.length ?? 0)} onClick={() => setPage((p) => p + 1)} className="rounded border border-gray-200 px-2 py-1 disabled:opacity-40">Suivant</button>
+              <button
+                type="button"
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="rounded-lg border border-gray-200 px-3 py-1 text-xs transition-all hover:bg-gray-50 disabled:opacity-40"
+              >
+                Précédent
+              </button>
+              <button
+                type="button"
+                disabled={(page + 1) * 10 >= (topNeg.data?.length ?? 0)}
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-lg border border-gray-200 px-3 py-1 text-xs transition-all hover:bg-gray-50 disabled:opacity-40"
+              >
+                Suivant
+              </button>
             </div>
           </div>
         </ChartCard>
@@ -166,17 +203,17 @@ export default function ReputationPage() {
       <AnimatePresence>
         {modal ? (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setModal(null)}
           >
             <motion.div
-              className="max-h-[80vh] max-w-lg overflow-auto rounded-2xl bg-white p-6 shadow-xl"
-              initial={{ scale: 0.96 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.96 }}
+              className="max-h-[80vh] max-w-lg overflow-auto rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl"
+              initial={{ scale: 0.96, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 10 }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex flex-wrap items-center gap-2">
@@ -184,10 +221,10 @@ export default function ReputationPage() {
                 <span className="text-xs text-gray-500">{modal.source}</span>
                 <span className="font-mono text-xs text-gray-600">{modal.sentiment_score?.toFixed(2)}</span>
               </div>
-              <p className="mt-4 text-sm italic leading-relaxed text-gray-800">{modal.texte}</p>
+              <p className="mt-4 text-sm leading-relaxed text-gray-800">{modal.texte}</p>
               <button
                 type="button"
-                className="mt-6 rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+                className="mt-6 rounded-xl bg-black px-4 py-2 text-sm font-medium text-white transition-all hover:bg-gray-800"
                 onClick={() => setModal(null)}
               >
                 Fermer

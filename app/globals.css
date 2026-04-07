@@ -6,63 +6,73 @@
 }
 
 :root {
-  /* ── COMEX / jury (spec) ── */
-  --comex-cream: #fafaf8;
-  --comex-bordeaux: #be185d;
-  --comex-blue: #3b82f6;
-  --comex-text: #111827;
-  --comex-text-muted: #6b7280;
-  --comex-border: #e5e7eb;
-
-  /* ── Backgrounds ── */
-  --bg-primary: #fafaf8;
-  --bg-secondary: #f4f4f1;
-  --bg-card: #ffffff;
-  --bg-sidebar: #140710;
-
-  /* ── Sephora Brand ── */
-  --s-black: #140710;
+  /* ── SEPHORA Brand (DA officielle) ── */
+  --s-black: #000000;
+  --s-white: #FFFFFF;
+  --s-gold: #C9A96E;
+  --s-gold-light: #D4B87A;
   --s-rose: #E8A0B4;
   --s-rose-deep: #C4637A;
   --s-nude: #D4A896;
-  --s-gold: #C9A96E;
   --s-blush: #F7ECF0;
+  --s-cream: #FAF8F5;
+
+  /* ── NOCIBÉ Brand (DA concurrence) ── */
+  --n-green: #00A651;
+  --n-green-light: #4DC47D;
+  --n-purple: #7B2D8E;
+  --n-purple-light: #9B5FAD;
+  --n-pink: #E91E8C;
+
+  /* ── COMEX / Jury ── */
+  --comex-cream: #FAF8F5;
+  --comex-bordeaux: #000000;
+  --comex-blue: #00A651;
+  --comex-text: #0A0A0A;
+  --comex-text-muted: #6b7280;
+  --comex-border: #E8E5E0;
+
+  /* ── Backgrounds ── */
+  --bg-primary: #FAF8F5;
+  --bg-secondary: #F2EFEA;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #000000;
 
   /* ── Sentiment ── */
   --positive: #22c55e;
-  --positive-bg: rgba(34, 197, 94, 0.12);
+  --positive-bg: rgba(34, 197, 94, 0.10);
   --negative: #ef4444;
-  --negative-bg: rgba(239, 68, 68, 0.12);
+  --negative-bg: rgba(239, 68, 68, 0.10);
   --neutral: #9ca3af;
-  --neutral-bg: rgba(156, 163, 175, 0.15);
+  --neutral-bg: rgba(156, 163, 175, 0.12);
 
   /* ── Graphiques ── */
-  --chart-sephora: #be185d;
-  --chart-nocibe: #3b82f6;
+  --chart-sephora: #000000;
+  --chart-nocibe: #00A651;
   --chart-gold: #C9A96E;
-  --chart-violet: #8B72C8;
-  --chart-green: #3DB87A;
+  --chart-violet: #7B2D8E;
+  --chart-green: #00A651;
   --chart-twitter: #1DA1F2;
   --chart-insta: #E1306C;
-  --chart-tiktok: #2D2D2D;
+  --chart-tiktok: #000000;
   --chart-linkedin: #0A66C2;
 
   /* ── Textes ── */
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-primary: #0A0A0A;
+  --text-secondary: #52524E;
+  --text-muted: #9C9B97;
 
   /* ── Bordures & Effets ── */
-  --border: #e5e7eb;
+  --border: #E8E5E0;
   --radius-card: 16px;
   --radius-sm: 12px;
-  --shadow-card: 0 2px 20px rgba(196,99,122,0.06), 0 1px 4px rgba(0,0,0,0.04);
-  --shadow-hover: 0 10px 40px rgba(196,99,122,0.14), 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-sidebar: 4px 0 24px rgba(20,7,16,0.12);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-hover: 0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-sidebar: 4px 0 24px rgba(0,0,0,0.15);
+  --shadow-gold: 0 4px 20px rgba(201,169,110,0.15);
 }
 
 @theme inline {
-  /* Colors */
   --color-background: var(--bg-primary);
   --color-foreground: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
@@ -71,19 +81,15 @@
   --color-accent: var(--s-black);
   --color-critical: var(--negative);
 
-  /* Font families */
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
   --font-body: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
   --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
 
-  /* Radius */
   --radius-2xl: var(--radius-sm);
   --radius-3xl: var(--radius-card);
 }
-
-/* App is intentionally light-only for COMEX clarity. */
 
 body {
   background: var(--bg-primary);
@@ -98,66 +104,45 @@ body {
 }
 
 ::selection {
-  background: #FDC9D3;
+  background: #C9A96E;
   color: #000000;
 }
 
-/* Subtle animated mesh background */
 .licter-mesh {
   background: none;
 }
 
 @keyframes licterMeshFloat {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(0, -12px, 0) scale(1.01);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -12px, 0) scale(1.01); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
 }
 
-/* Thin scrollbars (Windows-friendly) */
 * {
-  scrollbar-color: color-mix(in oklab, #000000 35%, rgba(0, 0, 0, 0.1)) transparent;
+  scrollbar-color: rgba(201,169,110,0.3) transparent;
   scrollbar-width: thin;
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .skeleton {
   background: linear-gradient(
     90deg,
-    #F5EEF0 25%,
-    #FBF5F7 50%,
-    #F5EEF0 75%
+    #F2EFEA 25%,
+    #FAF8F5 50%,
+    #F2EFEA 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
 @keyframes pulse-border {
-  0% {
-    border-left-color: #E05C6B;
-    opacity: 1;
-  }
-  50% {
-    border-left-color: #C4637A;
-    opacity: 0.6;
-  }
-  100% {
-    border-left-color: #E05C6B;
-    opacity: 1;
-  }
+  0% { border-left-color: #ef4444; opacity: 1; }
+  50% { border-left-color: #dc2626; opacity: 0.6; }
+  100% { border-left-color: #ef4444; opacity: 1; }
 }
 
 .alert-banner,
@@ -166,16 +151,44 @@ body {
 }
 
 @keyframes pulse-dot {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.5);
-    opacity: 0.4;
-  }
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.4; }
 }
 
 .live-dot {
   animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes goldShine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.gold-shine {
+  background: linear-gradient(90deg, #C9A96E 0%, #D4B87A 40%, #E8D5A8 50%, #D4B87A 60%, #C9A96E 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: goldShine 3s linear infinite;
+}
+
+.card-sephora {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card-sephora:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.gold-accent {
+  background: linear-gradient(90deg, var(--s-gold), var(--s-gold-light));
+}
+
+.nocibe-accent {
+  background: linear-gradient(90deg, var(--n-green), var(--n-green-light));
 }

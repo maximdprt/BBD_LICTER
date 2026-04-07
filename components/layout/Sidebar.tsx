@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
+import { SephoraLogo } from "@/components/ui/SephoraLogo";
 import {
   Activity,
   Bell,
   Crosshair,
   Home,
   MessageCircle,
+  Zap,
 } from "lucide-react";
 
 const navItems = [
@@ -17,6 +19,7 @@ const navItems = [
   { href: "/reputation", label: "Réputation", icon: Activity },
   { href: "/concurrence", label: "Concurrence", icon: Crosshair },
   { href: "/experience", label: "Expérience Client", icon: MessageCircle },
+  { href: "/next-best-actions", label: "Next Best Actions", icon: Zap },
   { href: "/alertes", label: "Alertes", icon: Bell },
 ] as const;
 
@@ -28,10 +31,10 @@ export function Sidebar() {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className={cn("sticky top-0 hidden h-dvh shrink-0 md:flex")}
       style={{
-        width: 240,
-        background: "var(--bg-sidebar)",
+        width: 260,
+        background: "#000000",
         boxShadow: "var(--shadow-sidebar)",
-        padding: "32px 0",
+        padding: "0",
         flexDirection: "column",
       }}
     >
@@ -45,97 +48,121 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
 
   return (
     <>
-      {/* En-tête */}
-      <div style={{ padding: "0 24px 32px" }}>
+      {/* Logo Sephora */}
+      <div className="px-6 pt-8 pb-6">
         <Link
           href="/"
           onClick={() => params?.onNavigate?.()}
           className="no-underline"
           style={{ display: "block", textDecoration: "none" }}
         >
-          <div
-            style={{
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-              fontSize: 18,
-              color: "#FFFFFF",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            ✦ SEPHORA
-          </div>
-          <div
-            style={{
-              marginTop: 8,
-              fontFamily: "var(--font-body)",
-              fontSize: 9,
-              fontWeight: 500,
-              letterSpacing: "0.18em",
-              color: "var(--s-rose)",
-              opacity: 0.75,
-              textTransform: "uppercase",
-            }}
-          >
-            Intelligence Stratégique
+          <div className="flex items-center gap-3">
+            <SephoraLogo size={36} className="text-[#C9A96E]" />
+            <div>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: "#FFFFFF",
+                  letterSpacing: "0.02em",
+                  lineHeight: 1.1,
+                }}
+              >
+                SEPHORA
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: 9,
+                  fontWeight: 600,
+                  letterSpacing: "0.2em",
+                  color: "#C9A96E",
+                  textTransform: "uppercase",
+                  marginTop: 2,
+                }}
+              >
+                Intelligence Platform
+              </div>
+            </div>
           </div>
         </Link>
       </div>
 
-      <nav className="mt-7 space-y-1">
+      {/* Separator */}
+      <div className="mx-6 h-px" style={{ background: "rgba(201,169,110,0.15)" }} />
+
+      <nav className="mt-6 space-y-0.5 px-3">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active =
             pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const isNBA = item.href === "/next-best-actions";
+
           return (
             <motion.div
               key={item.href}
-              whileHover={{ x: 3 }}
+              whileHover={{ x: 2 }}
               transition={{ type: "spring", stiffness: 400, damping: 28 }}
             >
               <Link
                 href={item.href}
                 onClick={() => params?.onNavigate?.()}
                 className={cn(
-                  "group relative flex items-center gap-3 transition-all duration-200",
-                  "bg-transparent text-[rgba(255,255,255,0.45)] group-hover:bg-[rgba(255,255,255,0.06)] group-hover:text-[rgba(255,255,255,0.85)]",
+                  "group relative flex items-center gap-3 rounded-xl transition-all duration-200",
+                  active
+                    ? "text-white"
+                    : "text-white/40 hover:bg-white/[0.04] hover:text-white/80",
                 )}
                 style={{
-                  padding: "11px 24px",
-                  borderRadius: "0 14px 14px 0",
-                  marginRight: 16,
+                  padding: "10px 14px",
                   fontFamily: "var(--font-body)",
                   fontSize: 13,
                   fontWeight: 500,
                   background: active
-                    ? "linear-gradient(135deg, rgba(196,99,122,0.25), rgba(201,169,110,0.12))"
+                    ? "linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.05))"
                     : undefined,
-                  color: active ? "#FFFFFF" : undefined,
-                  borderLeft: active ? "2px solid var(--s-rose-deep)" : "2px solid transparent",
-                  paddingLeft: active ? 22 : 24,
+                  borderLeft: active ? "2px solid #C9A96E" : "2px solid transparent",
                 }}
               >
-                <Icon
-                  className="size-[18px] text-current transition-all duration-200 group-hover:drop-shadow-[0_0_12px_rgba(196,99,122,0.35)]"
-                  style={{ flex: "0 0 auto" }}
-                />
+                <div
+                  className={cn(
+                    "grid size-8 place-items-center rounded-lg transition-all",
+                    active ? "bg-[#C9A96E]/10" : "bg-transparent",
+                    isNBA && !active ? "bg-white/[0.04]" : "",
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "size-[16px] transition-all",
+                      active ? "text-[#C9A96E]" : "text-current",
+                      isNBA && !active ? "text-[#C9A96E]/60" : "",
+                    )}
+                  />
+                </div>
                 <span className="truncate">{item.label}</span>
+                {isNBA && !active && (
+                  <span className="ml-auto rounded bg-[#C9A96E]/20 px-1.5 py-0.5 text-[9px] font-bold text-[#C9A96E]">
+                    NEW
+                  </span>
+                )}
               </Link>
             </motion.div>
           );
         })}
       </nav>
 
-      <div style={{ marginTop: "auto", padding: 24, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
+      {/* Footer */}
+      <div className="mt-auto px-6 py-5" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-2">
           <span
             className="live-dot"
             style={{
               width: 7,
               height: 7,
-              background: "#3DB87A",
+              background: "#22c55e",
               borderRadius: "50%",
               display: "inline-block",
-              marginRight: 8,
             }}
           />
           <span
@@ -149,8 +176,13 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
             Données en temps réel
           </span>
         </div>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="size-2 rounded-full bg-[#C9A96E]" />
+          <span className="text-[10px] font-medium text-white/20">
+            Sephora France — COMEX
+          </span>
+        </div>
       </div>
     </>
   );
 }
-

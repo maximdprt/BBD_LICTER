@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
+import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 
 type Props = Readonly<{
   value: number | null;
@@ -14,11 +15,11 @@ type Props = Readonly<{
 export function VoiceShareHalfGauge({ value, className }: Props) {
   const reduce = useReducedMotion();
   const v = value == null || !Number.isFinite(value) ? 0 : Math.max(0, Math.min(100, value));
-  const data = [{ name: "share", value: v, fill: "var(--comex-bordeaux, #be185d)" }];
+  const data = [{ name: "share", value: v, fill: "#C9A96E" }];
 
   return (
     <div className={className} style={{ height: 112, minHeight: 112, width: "100%", maxWidth: 200, margin: "0 auto" }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={80}>
         <RadialBarChart
           innerRadius="68%"
           outerRadius="100%"

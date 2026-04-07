@@ -60,7 +60,7 @@ import type {
 
 export function defaultDateRangeLast6Months(now = new Date()): DateRange {
   const to = endOfDay(now);
-  const from = startOfDay(new Date("2000-01-01T00:00:00.000Z"));
+  const from = startOfDay(subDays(now, 180));
   return { from, to };
 }
 

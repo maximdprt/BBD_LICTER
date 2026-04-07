@@ -1,6 +1,7 @@
 "use client";
 
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
+import { SephoraLogo } from "@/components/ui/SephoraLogo";
 
 export function TopBar() {
   const exportPdf = async () => {
@@ -14,7 +15,7 @@ export function TopBar() {
       scale: 2,
       useCORS: true,
       logging: false,
-      backgroundColor: "#fafaf8",
+      backgroundColor: "#FAF8F5",
     });
     const img = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
@@ -31,10 +32,10 @@ export function TopBar() {
     <header
       className="sticky top-0 z-10"
       style={{
-        height: 60,
-        background: "rgba(250,250,248,0.92)",
-        backdropFilter: "blur(14px)",
-        borderBottom: "1px solid var(--comex-border)",
+        height: 64,
+        background: "rgba(250,248,245,0.92)",
+        backdropFilter: "blur(16px)",
+        borderBottom: "1px solid var(--border)",
         padding: "0 32px",
         display: "flex",
         alignItems: "center",
@@ -45,51 +46,60 @@ export function TopBar() {
         <MobileSidebar />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 20,
-            fontWeight: 600,
-            color: "var(--comex-text)",
-            lineHeight: 1.1,
-          }}
-        >
-          SEPHORA Intel
-        </div>
-        <div
-          style={{
-            marginTop: 2,
-            fontFamily: "var(--font-body)",
-            fontSize: 13,
-            color: "var(--comex-text-muted)",
-            fontWeight: 400,
-          }}
-        >
-          Brand & Market Intelligence
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <SephoraLogo size={24} className="text-black" />
+        <div>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              fontWeight: 700,
+              color: "#000000",
+              lineHeight: 1.1,
+              letterSpacing: "0.02em",
+            }}
+          >
+            SEPHORA Intel
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 11,
+              color: "var(--s-gold)",
+              fontWeight: 500,
+              letterSpacing: "0.08em",
+            }}
+          >
+            Brand & Market Intelligence
+          </div>
         </div>
       </div>
 
       <button
         type="button"
         style={{
-          background: "var(--comex-bordeaux)",
+          background: "#000000",
           color: "#FFFFFF",
           borderRadius: 10,
           padding: "8px 20px",
           fontFamily: "var(--font-body)",
           fontSize: 13,
-          fontWeight: 500,
-          border: "none",
+          fontWeight: 600,
+          border: "1px solid rgba(201,169,110,0.2)",
           cursor: "pointer",
-          transition: "opacity 200ms ease",
+          transition: "all 200ms ease",
+          letterSpacing: "0.02em",
         }}
         onClick={() => void exportPdf()}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.opacity = "0.9";
+          const btn = e.currentTarget;
+          btn.style.background = "#C9A96E";
+          btn.style.color = "#000000";
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.opacity = "1";
+          const btn = e.currentTarget;
+          btn.style.background = "#000000";
+          btn.style.color = "#FFFFFF";
         }}
       >
         Export PDF

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bar, BarChart, LabelList, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, LabelList, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import type { VoiceSharePoint } from "@/lib/types";
 
 type Props = Readonly<{
@@ -27,7 +28,7 @@ export function VoiceShareBarChart({ data }: Props) {
         <button type="button" onClick={() => setMode("absolute")} className={`rounded-lg px-2 py-1 text-xs ${mode === "absolute" ? "bg-gray-800 text-white" : "bg-white text-gray-600"}`}>Volume absolu</button>
         <button type="button" onClick={() => setMode("relative")} className={`rounded-lg px-2 py-1 text-xs ${mode === "relative" ? "bg-gray-800 text-white" : "bg-white text-gray-600"}`}>Part relative %</button>
       </div>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={80}>
         <BarChart data={rows} barCategoryGap="24%" barGap={4}>
           <XAxis
             dataKey="source"

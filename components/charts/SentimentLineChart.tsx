@@ -8,11 +8,11 @@ import {
   ComposedChart,
   Line,
   ReferenceLine,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import type { WeeklySentimentPoint } from "@/lib/types";
 
 type Props = Readonly<{
@@ -144,7 +144,13 @@ export function SentimentLineChart({ data, alertWeeks = [] }: Props) {
     }));
   }, [data, windowMonths]);
 
-  const yDomain: [number, number] = [40, 65];
+  const yDomain: [number, number] = useMemo(() => {
+    const allValues = filteredData.flatMap((p) => [p.sephora, p.nocibe]).filter((v): v is number => typeof v === "number");
+    if (allValues.length === 0) return [40, 65];
+    const min = Math.floor(Math.min(...allValues)) - 4;
+    const max = Math.ceil(Math.max(...allValues)) + 4;
+    return [Math.max(0, min), Math.min(100, max)];
+  }, [filteredData]);
 
   const annotations = useMemo(() => findAnnotations(filteredData), [filteredData]);
 
@@ -164,14 +170,14 @@ export function SentimentLineChart({ data, alertWeeks = [] }: Props) {
             key={m}
             type="button"
             onClick={() => setWindowMonths(m as 1 | 3 | 6)}
-            className={`rounded-lg px-3 py-1 text-xs font-semibold ${windowMonths === m ? "bg-(--comex-bordeaux) text-white" : "bg-gray-100 text-gray-600"}`}
+            className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${windowMonths === m ? "bg-black text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
           >
             {m}M
           </button>
         ))}
       </div>
       <div className="h-[300px] w-full min-h-[260px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
           <ComposedChart data={filteredData} margin={{ top: 16, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
 
@@ -193,7 +199,7 @@ export function SentimentLineChart({ data, alertWeeks = [] }: Props) {
 
             <Tooltip content={<SentimentTooltip />} />
 
-            <Area type="monotone" dataKey="leadUpper" stroke="none" fill="rgba(190,24,93,0.15)" />
+            <Area type="monotone" dataKey="leadUpper" stroke="none" fill="rgba(201,169,110,0.10)" />
             <Area type="monotone" dataKey="leadLower" stroke="none" fill="white" />
 
             {/* Alertes */}

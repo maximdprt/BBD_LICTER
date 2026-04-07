@@ -183,7 +183,7 @@ export default function DashboardPage() {
             trendValue={voiceShareTrendValue}
             icon={<PieChart className="size-5" />}
             sparkline={voiceShareSpark}
-            sparkColor="var(--comex-blue)"
+            sparkColor="#C9A96E"
             isLoading={!voice.data && !voice.error}
             className="h-full"
           >
@@ -213,14 +213,14 @@ export default function DashboardPage() {
           <AlertBanner
             tone="danger"
             title="Alerte — Sentiment bas"
-            description="L’indice de sentiment Sephora est passé sous 40. Vérifier les verbatims négatifs et les thèmes émergents."
+            description="L'indice de sentiment Sephora est passé sous 40. Vérifier les verbatims négatifs et les thèmes émergents."
           />
         ) : null}
         {alertFlags.volumeSpike ? (
           <AlertBanner
             tone="warning"
             title="Signal — Spike de volume"
-            description="Le volume de signaux a fortement augmenté sur la période récente. Contrôler l’origine (plateformes + thèmes)."
+            description="Le volume de signaux a fortement augmenté sur la période récente. Contrôler l'origine (plateformes + thèmes)."
           />
         ) : null}
       </div>
@@ -266,14 +266,10 @@ export default function DashboardPage() {
       <AIInsightPanel />
 
       {(sephoraSent.error || sephoraVolume.error || voice.error || overTime.error) && (
-        <div
-          className={cn(
-            "relative mt-6 overflow-hidden rounded-2xl border border-pink-200 bg-white p-4 text-sm text-[var(--comex-text)]",
-          )}
-        >
-          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-[var(--comex-bordeaux)] to-pink-300" />
+        <div className="relative mt-6 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="absolute inset-x-0 top-0 h-0.5 gold-accent" />
           Impossible de charger certaines données depuis Supabase. Vérifie la table `signals`, les droits RLS, et les
-          variables d’environnement.
+          variables d&apos;environnement.
         </div>
       )}
     </div>

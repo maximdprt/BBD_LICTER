@@ -6,6 +6,7 @@ import { CompetitorRadarChart } from "@/components/charts/CompetitorRadarChart";
 import { VoiceShareBarChart } from "@/components/charts/VoiceShareBarChart";
 import { CompetitorMatrix } from "@/components/sections/CompetitorMatrix";
 import { CompetitorTimeline } from "@/components/charts/CompetitorTimeline";
+import { SephoraLogo } from "@/components/ui/SephoraLogo";
 import {
   useCompetitorComparison,
   useCompetitorRadarMetrics,
@@ -39,7 +40,21 @@ export default function ConcurrencePage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="grid gap-4"
       >
-        {/* Matrice en premier — composant le plus décisionnel */}
+        {/* Brand comparison header */}
+        <div className="flex items-center justify-center gap-8 rounded-2xl border border-gray-100 bg-white py-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <SephoraLogo size={28} className="text-black" />
+            <span className="text-lg font-bold text-black">SEPHORA</span>
+          </div>
+          <div className="text-xl font-bold text-gray-300">VS</div>
+          <div className="flex items-center gap-3">
+            <div className="grid size-7 place-items-center rounded-full" style={{ background: "#00A651" }}>
+              <span className="text-sm font-bold text-white">N</span>
+            </div>
+            <span className="text-lg font-bold" style={{ color: "#00A651" }}>NOCIBÉ</span>
+          </div>
+        </div>
+
         <ChartCard
           title="Matrice concurrentielle"
           subtitle="Synthèse des KPIs clés — Sephora vs Nocibé"
@@ -48,7 +63,6 @@ export default function ConcurrencePage() {
           <CompetitorMatrix data={comparison.data ?? null} isLoading={!comparison.data && !comparison.error} />
         </ChartCard>
 
-        {/* Radar + Part de voix côte à côte */}
         <div className="grid gap-4 xl:grid-cols-2">
           <ChartCard
             title="Radar concurrentiel"
@@ -64,15 +78,17 @@ export default function ConcurrencePage() {
             isLoading={!voice.data && !voice.error}
           >
             {voiceDomination.total > 0 ? (
-              <p className="mb-2 text-center text-sm font-semibold" style={{ color: "var(--comex-text)" }}>
-                Sephora domine sur {voiceDomination.n}/{voiceDomination.total} plateformes
-              </p>
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <div className="size-2 rounded-full bg-black" />
+                <p className="text-center text-sm font-semibold text-gray-900">
+                  Sephora domine sur {voiceDomination.n}/{voiceDomination.total} plateformes
+                </p>
+              </div>
             ) : null}
             <VoiceShareBarChart data={voice.data ?? []} />
           </ChartCard>
         </div>
 
-        {/* Timeline des pics */}
         <ChartCard
           title="Timeline des pics de volume"
           subtitle="6 mois — quand chaque marque a surperformé"

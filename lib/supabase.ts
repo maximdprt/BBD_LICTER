@@ -1,12 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Variable d'environnement manquante: ${name}`);
-  return value;
-}
+let _client: SupabaseClient | null = null;
 
-/** True when Supabase URL + anon key are set (safe to call on client and server). */
 export function isSupabaseConfigured(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
@@ -15,10 +10,19 @@ export function isSupabaseConfigured(): boolean {
 }
 
 export function getSupabaseClient(): SupabaseClient {
-  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const key = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  return createClient(url, key, {
+  if (_client) return _client;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
+  if (!url || !key) {
+    throw new Error(
+      "Variables d'environnement Supabase manquantes. Vérifiez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY dans .env.local",
+    );
+  }
+
+  _client = createClient(url, key, {
     auth: { persistSession: true, autoRefreshToken: true },
   });
+  return _client;
 }
-

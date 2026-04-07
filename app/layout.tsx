@@ -13,10 +13,11 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { BackgroundFX } from "@/components/layout/BackgroundFX";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { MistralChatAgent } from "@/components/ai/MistralChatAgent";
 
 export const metadata: Metadata = {
-  title: "SEPHORA Intel — Intelligence COMEX",
-  description: "Dashboard Brand & Market Intelligence — Sephora vs Nocibé",
+  title: "SEPHORA Intel — Intelligence Stratégique",
+  description: "Dashboard Brand & Market Intelligence — Sephora vs Nocibé — Powered by Mistral AI",
 };
 
 export default function RootLayout({
@@ -47,6 +48,8 @@ export default function RootLayout({
             </main>
           </div>
         </div>
+
+        <MistralChatAgent />
       </body>
     </html>
   );

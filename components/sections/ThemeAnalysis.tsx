@@ -2,7 +2,8 @@
 
 import type { ThemeInsight } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { BarChart, Bar, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, LabelList } from "recharts";
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, LabelList } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 
 type Props = Readonly<{
   data: ThemeInsight[];
@@ -87,7 +88,7 @@ export function ThemeAnalysis({ data, className }: Props) {
 
   return (
     <div className={cn("h-[280px] w-full", className)}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={80}>
         <BarChart
           data={chartData}
           layout="vertical"

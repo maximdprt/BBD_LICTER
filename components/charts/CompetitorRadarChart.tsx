@@ -7,9 +7,9 @@ import {
   PolarRadiusAxis,
   Radar,
   RadarChart,
-  ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import type { CompetitorRadarMetrics } from "@/lib/types";
 
 const AXIS_LABELS: Record<string, string> = {
@@ -55,7 +55,7 @@ export function CompetitorRadarChart({ data, isLoading }: Props) {
 
   return (
     <div className="w-full" style={{ minHeight: 360 }}>
-      <ResponsiveContainer width="100%" height={360}>
+      <ResponsiveContainer width="100%" height={360} minWidth={200} minHeight={200}>
         <RadarChart cx="50%" cy="50%" outerRadius="72%" data={chartData}>
           <PolarGrid stroke="#e5e7eb" strokeDasharray="3 3" />
           <PolarAngleAxis
@@ -109,14 +109,14 @@ export function CompetitorRadarChart({ data, isLoading }: Props) {
       <div className="flex flex-wrap justify-center gap-3 text-xs">
         <button
           type="button"
-          className={`rounded-full px-3 py-1 font-medium transition-opacity ${hideSephora ? "bg-gray-100 text-gray-400 opacity-50" : "bg-pink-50 text-[var(--comex-bordeaux)]"}`}
+          className={`rounded-full px-3 py-1 font-medium transition-opacity ${hideSephora ? "bg-gray-100 text-gray-400 opacity-50" : "bg-gray-100 text-black"}`}
           onClick={() => setHideSephora((x) => !x)}
         >
           ● Sephora
         </button>
         <button
           type="button"
-          className={`rounded-full px-3 py-1 font-medium transition-opacity ${hideNocibe ? "bg-gray-100 text-gray-400 opacity-50" : "bg-blue-50 text-[var(--comex-blue)]"}`}
+          className={`rounded-full px-3 py-1 font-medium transition-opacity ${hideNocibe ? "bg-gray-100 text-gray-400 opacity-50" : "bg-green-50 text-[#00A651]"}`}
           onClick={() => setHideNocibe((x) => !x)}
         >
           ● Nocibé

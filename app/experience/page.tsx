@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { VerbatimFeed } from "@/components/sections/VerbatimFeed";
 import {
@@ -30,16 +31,8 @@ const PLATFORMS: { slug: SignalSource; label: string }[] = [
 ];
 
 const THEME_PRESETS: ThemeToken[] = [
-  "livraison",
-  "stock",
-  "magasin",
-  "fidélité",
-  "SAV",
-  "service",
-  "application",
-  "produits",
-  "conseil",
-  "prix",
+  "livraison", "stock", "magasin", "fidélité", "SAV",
+  "service", "application", "produits", "conseil", "prix",
 ];
 
 function toInputDate(d: Date) {
@@ -113,13 +106,14 @@ export default function ExperiencePage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="grid gap-4"
       >
-        <div className="rounded-2xl border border-[var(--comex-border)] bg-white p-4 shadow-sm">
+        {/* Filters */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="text-sm font-semibold text-[var(--comex-text)]">Filtres</div>
+            <div className="text-sm font-semibold text-gray-900">Filtres</div>
             <button
               type="button"
               onClick={resetFilters}
-              className="ml-auto rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+              className="ml-auto rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition-all hover:bg-gray-50"
             >
               Reset filtres
             </button>
@@ -129,33 +123,24 @@ export default function ExperiencePage() {
               Du
               <input
                 type="date"
-                className="ml-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+                className="ml-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:border-[#C9A96E] focus:outline-none focus:ring-1 focus:ring-[#C9A96E]/20"
                 value={fromStr}
-                onChange={(e) => {
-                  setFromStr(e.target.value);
-                  setPage(0);
-                }}
+                onChange={(e) => { setFromStr(e.target.value); setPage(0); }}
               />
             </label>
             <label className="text-xs text-gray-500">
               au
               <input
                 type="date"
-                className="ml-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+                className="ml-1 rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:border-[#C9A96E] focus:outline-none focus:ring-1 focus:ring-[#C9A96E]/20"
                 value={toStr}
-                onChange={(e) => {
-                  setToStr(e.target.value);
-                  setPage(0);
-                }}
+                onChange={(e) => { setToStr(e.target.value); setPage(0); }}
               />
             </label>
             <select
-              className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-[#C9A96E] focus:outline-none"
               value={sentiment}
-              onChange={(e) => {
-                setSentiment(e.target.value as Sentiment | "all");
-                setPage(0);
-              }}
+              onChange={(e) => { setSentiment(e.target.value as Sentiment | "all"); setPage(0); }}
             >
               <option value="all">Sentiment : tous</option>
               <option value="positif">positif</option>
@@ -163,31 +148,26 @@ export default function ExperiencePage() {
               <option value="négatif">négatif</option>
             </select>
             <select
-              className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-[#C9A96E] focus:outline-none"
               value={theme}
-              onChange={(e) => {
-                setTheme(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => { setTheme(e.target.value); setPage(0); }}
             >
               <option value="">Thème : tous</option>
               {THEME_PRESETS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
           <div className="mt-3">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Plateformes</div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-3">
               {PLATFORMS.map(({ slug, label }) => (
                 <label key={slug} className="flex cursor-pointer items-center gap-1.5 text-sm">
                   <input
                     type="checkbox"
                     checked={sources.includes(slug)}
                     onChange={() => toggleSource(slug)}
-                    className="rounded border-gray-300"
+                    className="rounded border-gray-300 text-black focus:ring-[#C9A96E]"
                   />
                   {label}
                 </label>
@@ -208,7 +188,7 @@ export default function ExperiencePage() {
               </div>
             ) : (
               <div className="relative h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={80}>
                   <PieChart>
                     <Tooltip />
                     <Pie
@@ -229,7 +209,7 @@ export default function ExperiencePage() {
                 </ResponsiveContainer>
                 {dominant ? (
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <div className="text-3xl font-bold tabular-nums text-[var(--comex-text)]">{dominant.pct}%</div>
+                    <div className="text-3xl font-bold tabular-nums text-gray-900">{dominant.pct}%</div>
                     <div className="text-xs font-medium capitalize text-gray-500">{dominant.name}</div>
                   </div>
                 ) : null}
@@ -239,9 +219,7 @@ export default function ExperiencePage() {
               {pieData.rows.map((r) => (
                 <li key={r.name} className="flex justify-between gap-2">
                   <span className="capitalize">{r.name}</span>
-                  <span>
-                    {pieData.total ? Math.round((r.value / pieData.total) * 100) : 0}% — {r.value} avis
-                  </span>
+                  <span>{pieData.total ? Math.round((r.value / pieData.total) * 100) : 0}% — {r.value} avis</span>
                 </li>
               ))}
             </ul>
@@ -257,7 +235,7 @@ export default function ExperiencePage() {
                 Pas de données pour cette période
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {themes.data.map((t) => {
                   const score = t.avgSentimentScore ?? 0;
                   const barColor = score < 0 ? "#ef4444" : score > 0 ? "#22c55e" : "#9ca3af";
@@ -298,10 +276,10 @@ export default function ExperiencePage() {
               {words.data.map((w) => (
                 <span
                   key={w.word}
-                  className="rounded-full px-3 py-1 text-sm font-medium"
+                  className="rounded-full border border-gray-100 px-3 py-1 font-medium"
                   style={{
-                    background: "rgba(190,24,93,0.1)",
-                    color: "var(--comex-bordeaux)",
+                    background: "rgba(0,0,0,0.03)",
+                    color: "#0A0A0A",
                     fontSize: `${12 + Math.min(14, w.count)}px`,
                   }}
                 >
@@ -323,7 +301,7 @@ export default function ExperiencePage() {
               type="button"
               disabled={page <= 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
-              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium disabled:opacity-40"
+              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium transition-all hover:bg-gray-50 disabled:opacity-40"
             >
               Précédent
             </button>
@@ -331,7 +309,7 @@ export default function ExperiencePage() {
               type="button"
               disabled={verbatims.data?.nextPage == null}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium disabled:opacity-40"
+              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium transition-all hover:bg-gray-50 disabled:opacity-40"
             >
               Suivant
             </button>

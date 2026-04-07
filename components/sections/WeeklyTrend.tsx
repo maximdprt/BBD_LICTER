@@ -1,6 +1,7 @@
 "use client";
 
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import { cn } from "@/lib/cn";
 import type { WeeklyPoint } from "@/lib/types";
 
@@ -14,7 +15,7 @@ export function WeeklyTrend({ data, className }: Props) {
 
   return (
     <div className={cn("h-[280px] w-full", className)}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
         <BarChart data={data} barCategoryGap={10}>
           <CartesianGrid stroke="#EDE8E6" strokeDasharray="2 4" vertical={false} />
           <XAxis

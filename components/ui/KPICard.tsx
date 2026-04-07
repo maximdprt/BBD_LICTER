@@ -3,7 +3,8 @@
 import type { ReactElement, ReactNode } from "react";
 import { cloneElement, isValidElement } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { Area, AreaChart } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
@@ -20,9 +21,7 @@ type Props = Readonly<{
   valueSuffix?: string;
   trend?: "up" | "down" | "flat" | null;
   trendValue?: number | null;
-  /** Libellé trend (remplace le format par défaut). */
   trendLabelOverride?: string | null;
-  /** Par défaut % ; `points` pour delta d’indice 0–100. */
   trendUnit?: "percent" | "points";
   icon?: ReactNode;
   sparkline?: SparkPoint[];
@@ -30,15 +29,14 @@ type Props = Readonly<{
   children?: ReactNode;
   isLoading?: boolean;
   className?: string;
-  /** Badge seuils sentiment : &lt;40 rouge, 40–60 orange, &gt;60 vert */
   sentimentHealth?: SentimentHealthZone | null;
 }>;
 
 function healthBadge(zone: SentimentHealthZone) {
   const map = {
-    critical: { label: "Critique", bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
-    moderate: { label: "Modéré", bg: "rgba(234,179,8,0.15)", color: "#ca8a04" },
-    excellent: { label: "Excellent", bg: "rgba(34,197,94,0.12)", color: "#22c55e" },
+    critical: { label: "Critique", bg: "rgba(239,68,68,0.10)", color: "#ef4444" },
+    moderate: { label: "Modéré", bg: "rgba(234,179,8,0.12)", color: "#ca8a04" },
+    excellent: { label: "Excellent", bg: "rgba(34,197,94,0.10)", color: "#22c55e" },
   } as const;
   return map[zone];
 }
@@ -85,18 +83,17 @@ export function KPICard({
 
   const iconElement = (() => {
     if (!icon) return null;
-    const gradientClasses = "text-transparent bg-clip-text bg-gradient-to-r from-[var(--comex-bordeaux,#be185d)] to-[#c9a96e]";
     if (isValidElement(icon)) {
       const iconEl = icon as ReactElement<{ className?: string }>;
       return cloneElement(iconEl, {
-        className: cn(iconEl.props.className, gradientClasses),
+        className: cn(iconEl.props.className, "text-[#C9A96E]"),
       });
     }
     return icon;
   })();
 
-  const areaStroke = sparkColor ?? "var(--comex-bordeaux, #be185d)";
-  const areaFill = "rgba(190, 24, 93, 0.08)";
+  const areaStroke = sparkColor ?? "#000000";
+  const areaFill = sparkColor ? `${sparkColor}15` : "rgba(0,0,0,0.04)";
 
   const sentimentProgress =
     title === "Indice de Sentiment" && typeof value === "number"
@@ -110,7 +107,7 @@ export function KPICard({
           ? undefined
           : {
               y: -2,
-              boxShadow: "0 8px 24px rgba(17,24,39,0.08), 0 2px 8px rgba(190,24,93,0.06)",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(201,169,110,0.08)",
             }
       }
       whileTap={prefersReducedMotion ? undefined : { scale: 0.995 }}
@@ -119,20 +116,19 @@ export function KPICard({
       style={{
         willChange: "transform",
         background: "var(--bg-card)",
-        border: "1px solid var(--comex-border, #e5e7eb)",
-        borderRadius: "16px",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-card)",
         padding: "24px 24px 20px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        boxShadow: "var(--shadow-card)",
         overflow: "hidden",
         position: "relative",
       }}
     >
+      {/* Gold accent line */}
       <div
         aria-hidden
-        className="absolute left-0 top-0 h-[3px] w-14 rounded-br"
-        style={{
-          background: "linear-gradient(90deg, var(--comex-bordeaux,#be185d), #c9a96e)",
-        }}
+        className="absolute left-0 top-0 h-full w-[3px]"
+        style={{ background: "linear-gradient(180deg, #C9A96E, #C9A96E40)" }}
       />
 
       <div className="flex min-h-[130px] items-start justify-between gap-4">
@@ -159,7 +155,7 @@ export function KPICard({
                   {value == null ? (
                     <div className="text-[48px] font-bold leading-none text-gray-300">—</div>
                   ) : typeof value === "string" ? (
-                    <div className="text-[48px] font-bold leading-none text-[var(--comex-text,#111827)] tabular-nums">
+                    <div className="text-[48px] font-bold leading-none text-gray-900 tabular-nums">
                       {value}
                     </div>
                   ) : (
@@ -168,7 +164,7 @@ export function KPICard({
                       duration={prefersReducedMotion ? 0 : 500}
                       decimals={0}
                       suffix={valueSuffix}
-                      className="font-mono text-[48px] font-bold leading-none text-[var(--comex-text,#111827)] tabular-nums"
+                      className="font-mono text-[48px] font-bold leading-none text-gray-900 tabular-nums"
                     />
                   )}
 
@@ -195,9 +191,9 @@ export function KPICard({
                           : "negative";
                     const wrapStyle =
                       tone === "positive"
-                        ? { background: "rgba(34,197,94,0.12)", color: "#16a34a" }
+                        ? { background: "rgba(34,197,94,0.10)", color: "#16a34a" }
                         : tone === "negative"
-                          ? { background: "rgba(239,68,68,0.12)", color: "#ef4444" }
+                          ? { background: "rgba(239,68,68,0.10)", color: "#ef4444" }
                           : { background: "var(--neutral-bg)", color: "var(--neutral)" };
                     return (
                       <div
@@ -213,12 +209,12 @@ export function KPICard({
               </div>
 
               {title === "Indice de Sentiment" && sentimentProgress != null ? (
-                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-gray-100">
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
                   <motion.div
                     className="h-full rounded-full"
                     style={{
                       width: `${sentimentProgress}%`,
-                      background: "linear-gradient(90deg, var(--comex-bordeaux,#be185d), #9f1239)",
+                      background: "linear-gradient(90deg, #C9A96E, #D4B87A)",
                     }}
                     initial={prefersReducedMotion ? false : { width: 0 }}
                     animate={{ width: `${sentimentProgress}%` }}
@@ -231,7 +227,9 @@ export function KPICard({
         </div>
 
         {iconElement ? (
-          <div className="relative z-10 mt-0.5 flex size-10 items-center justify-center rounded-2xl">{iconElement}</div>
+          <div className="relative z-10 mt-0.5 grid size-10 place-items-center rounded-xl bg-black/[0.03]">
+            {iconElement}
+          </div>
         ) : null}
       </div>
 
@@ -243,7 +241,7 @@ export function KPICard({
         {isLoading ? (
           <div className="skeleton h-2 w-full rounded" />
         ) : sparkline && sparkline.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={80} minHeight={30}>
             <AreaChart data={sparkline} margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>
               <Area
                 type="monotone"

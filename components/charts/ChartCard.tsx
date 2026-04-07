@@ -22,6 +22,13 @@ export function ChartCard({ title, subtitle, right, children, isLoading, classNa
         boxShadow: "var(--shadow-card)",
       }}
     >
+      {/* Gold accent top line */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-[2px]"
+        style={{ background: "linear-gradient(90deg, #C9A96E, transparent 60%)" }}
+      />
+
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div
@@ -31,7 +38,7 @@ export function ChartCard({ title, subtitle, right, children, isLoading, classNa
             {title}
           </div>
           {subtitle ? (
-            <div className="mt-1 text-[13px]" style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+            <div className="mt-1 text-[13px]" style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
               {subtitle}
             </div>
           ) : null}
@@ -49,4 +56,3 @@ export function ChartCard({ title, subtitle, right, children, isLoading, classNa
     </section>
   );
 }
-

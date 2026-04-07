@@ -32,7 +32,7 @@ export function MobileSidebar() {
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="absolute left-0 top-0 h-dvh w-[240px] px-4 py-5"
+              className="absolute left-0 top-0 h-dvh w-[260px] px-4 py-5"
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}

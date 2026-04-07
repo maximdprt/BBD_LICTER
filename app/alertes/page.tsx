@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { useSWRConfig } from "swr";
 import {
   CartesianGrid,
-  ResponsiveContainer,
   Scatter,
   ScatterChart,
   Tooltip,
@@ -13,6 +12,7 @@ import {
   YAxis,
   ZAxis,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { VerbatimFeed } from "@/components/sections/VerbatimFeed";
 import {
@@ -44,7 +44,7 @@ export default function AlertesPage() {
   const feedFilters = useMemo(() => {
     const to = new Date();
     const from = subDays(to, 7);
-    return { from, to };
+    return { from, to, marque: "Sephora" as const };
   }, []);
   const feed = useVerbatims(feedFilters, 0, 10);
 
@@ -71,6 +71,8 @@ export default function AlertesPage() {
     );
   }, [rows.data, resolvedLocally]);
 
+  void sephoraVolume;
+
   return (
     <div className="mx-auto w-full max-w-[1400px]">
       <motion.div
@@ -79,10 +81,14 @@ export default function AlertesPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="grid gap-4"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--comex-border)] bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <span
-              className={`rounded-full px-3 py-1 text-sm font-bold ${(activeCount.data ?? 0) > 0 ? "animate-pulse bg-red-100 text-red-700" : "bg-green-100 text-green-800"}`}
+              className={`rounded-full px-3 py-1 text-sm font-bold ${
+                (activeCount.data ?? 0) > 0
+                  ? "animate-pulse bg-red-50 text-red-700 border border-red-200"
+                  : "bg-green-50 text-green-800 border border-green-200"
+              }`}
             >
               {(activeCount.data ?? 0) > 0
                 ? `${activeCount.data} alertes actives`
@@ -94,7 +100,7 @@ export default function AlertesPage() {
           </div>
           <button
             type="button"
-            className="text-xs font-medium text-[var(--comex-bordeaux)] hover:underline"
+            className="text-xs font-medium text-[#C9A96E] hover:underline"
             onClick={() => setChecked(new Date().toISOString())}
           >
             Actualiser
@@ -107,15 +113,15 @@ export default function AlertesPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b text-[11px] uppercase tracking-wider text-gray-500">
+                <thead className="border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500">
                   <tr>
-                    <th className="py-2 pr-2">Date</th>
-                    <th className="py-2 pr-2">Source</th>
-                    <th className="py-2 pr-2">Thème</th>
-                    <th className="py-2 pr-2">Résumé</th>
-                    <th className="py-2 pr-2">Score</th>
-                    <th className="py-2 pr-2">Statut</th>
-                    <th className="py-2">Action</th>
+                    <th className="py-2.5 pr-2">Date</th>
+                    <th className="py-2.5 pr-2">Source</th>
+                    <th className="py-2.5 pr-2">Thème</th>
+                    <th className="py-2.5 pr-2">Résumé</th>
+                    <th className="py-2.5 pr-2">Score</th>
+                    <th className="py-2.5 pr-2">Statut</th>
+                    <th className="py-2.5">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -127,21 +133,29 @@ export default function AlertesPage() {
                       return (
                         <tr
                           key={r.id}
-                          className={`border-t ${critical ? "bg-red-50/80" : vigil ? "bg-amber-50/60" : ""}`}
+                          className={`border-t border-gray-50 ${critical ? "bg-red-50/60" : vigil ? "bg-amber-50/40" : ""}`}
                         >
-                          <td className="py-2 pr-2 whitespace-nowrap text-gray-600">
+                          <td className="py-2.5 pr-2 whitespace-nowrap text-gray-600">
                             {format(new Date(r.date), "d MMM yyyy", { locale: fr })}
                           </td>
-                          <td className="py-2 pr-2">{r.source}</td>
-                          <td className="py-2 pr-2 capitalize">{r.theme}</td>
-                          <td className="max-w-[220px] truncate py-2 pr-2">{r.summary}</td>
-                          <td className="py-2 pr-2 font-mono">{r.score.toFixed(2)}</td>
-                          <td className="py-2 pr-2">{r.status === "resolved" ? "Traité" : "Actif"}</td>
-                          <td className="py-2">
+                          <td className="py-2.5 pr-2">{r.source}</td>
+                          <td className="py-2.5 pr-2 capitalize">{r.theme}</td>
+                          <td className="max-w-[220px] truncate py-2.5 pr-2">{r.summary}</td>
+                          <td className="py-2.5 pr-2 font-mono">{r.score.toFixed(2)}</td>
+                          <td className="py-2.5 pr-2">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              r.status === "resolved"
+                                ? "bg-green-50 text-green-700"
+                                : "bg-red-50 text-red-700"
+                            }`}>
+                              {r.status === "resolved" ? "Traité" : "Actif"}
+                            </span>
+                          </td>
+                          <td className="py-2.5">
                             {r.status === "resolved" ? null : (
                               <button
                                 type="button"
-                                className="rounded-lg bg-gray-900 px-2 py-1 text-xs font-medium text-white"
+                                className="rounded-lg bg-black px-2.5 py-1 text-xs font-medium text-white transition-all hover:bg-gray-800"
                                 onClick={() => void resolve(r.id)}
                               >
                                 Marquer traité
@@ -162,21 +176,19 @@ export default function AlertesPage() {
             <p className="text-sm text-gray-500">Aucun signal faible détecté sur les règles définies.</p>
           ) : (
             <div className="h-[300px] w-full min-h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                 <ScatterChart margin={{ top: 16, right: 16, bottom: 16, left: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E5E0" />
                   <XAxis type="number" dataKey="volumeGrowth" name="Croissance volume %" tick={{ fontSize: 10 }} />
                   <YAxis type="number" dataKey="sentimentDelta" name="Δ sentiment" tick={{ fontSize: 10 }} />
                   <ZAxis range={[80, 80]} />
                   <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                  <Scatter name="Thèmes" data={weak.data} fill="var(--comex-bordeaux)">
-                    {/* labels via custom shape would be heavy; list below */}
-                  </Scatter>
+                  <Scatter name="Thèmes" data={weak.data} fill="#C9A96E" />
                 </ScatterChart>
               </ResponsiveContainer>
               <ul className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
                 {weak.data.map((p) => (
-                  <li key={p.theme} className="rounded-full bg-gray-100 px-2 py-0.5 capitalize">
+                  <li key={p.theme} className="rounded-full border border-gray-100 bg-gray-50 px-2.5 py-0.5 capitalize">
                     {p.theme}
                   </li>
                 ))}
@@ -186,8 +198,11 @@ export default function AlertesPage() {
         </ChartCard>
 
         {competitorOvertake ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            Alerte — Nocibé surperforme en sentiment sur la période analysée.
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="grid size-8 place-items-center rounded-lg" style={{ background: "#00A651" }}>
+              <span className="text-xs font-bold text-white">N</span>
+            </div>
+            Nocibé surperforme Sephora en sentiment sur la période analysée.
           </div>
         ) : null}
 

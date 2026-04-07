@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/charts/SafeResponsiveContainer";
 import type { VoiceSharePoint } from "@/lib/types";
 
 type Props = Readonly<{
@@ -77,7 +78,7 @@ export function SourceDonutChart({ data, marque, onSelectSource }: Props) {
       </div>
 
       <div className="relative h-[260px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={80}>
           <PieChart>
             <Tooltip content={<CustomTooltip />} />
             <Pie
