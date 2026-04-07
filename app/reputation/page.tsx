@@ -68,7 +68,6 @@ export default function ReputationPage() {
               competitorValue={nocibe.data?.score ?? null}
               sparkline={sparkline30d.data ?? undefined}
               trend7d={trend7d.data ?? undefined}
-              size={280}
             />
           </div>
         </ChartCard>
