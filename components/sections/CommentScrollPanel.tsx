@@ -90,7 +90,7 @@ export function CommentScrollPanel({ rows, isLoading, className, maxHeight = "42
     >
       <div className="relative px-5 py-4">
         <div
-          className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-[#FDC9D3]/55 via-white/60 to-[#FDC9D3]/40 blur-2xl opacity-90"
+          className="pointer-events-none absolute inset-0 z-0 bg-linear-to-r from-[#FDC9D3]/55 via-white/60 to-[#FDC9D3]/40 blur-2xl opacity-90"
           aria-hidden="true"
         />
         <div className="relative z-10">
@@ -100,8 +100,8 @@ export function CommentScrollPanel({ rows, isLoading, className, maxHeight = "42
           </div>
 
           <div className="comment-marquee group relative mt-3">
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-linear-to-r from-white to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-linear-to-l from-white to-transparent" />
 
             <div className="comment-marquee__viewport overflow-hidden">
               <ul className="comment-marquee__track flex gap-3 pr-5">
