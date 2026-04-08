@@ -54,7 +54,15 @@ export function CommentScrollPanel({ rows, isLoading, className, maxHeight = "42
 
   const items: { id: string; source: string; marque: string; texte: string; sentiment: string; note: number | null; theme?: string }[] =
     rows.length > 0
-      ? rows.map((r) => ({ id: r.id ?? Math.random().toString(), source: r.source, marque: r.marque, texte: r.texte, sentiment: r.sentiment, note: r.note ?? null, theme: r.theme }))
+      ? rows.map((r, i) => ({
+          id: r.id ?? `mention-${i}`,
+          source: r.source,
+          marque: r.marque,
+          texte: r.texte,
+          sentiment: r.sentiment,
+          note: r.note ?? null,
+          theme: r.theme,
+        }))
       : FALLBACK;
 
   const capped = items.slice(0, 12);

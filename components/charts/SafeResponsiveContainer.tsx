@@ -7,7 +7,10 @@ type Props = ComponentProps<typeof ResponsiveContainer>;
 
 export function SafeResponsiveContainer(props: Props) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   if (!mounted) {
     return (

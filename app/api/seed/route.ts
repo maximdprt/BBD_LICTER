@@ -4,10 +4,13 @@ import { defaultDateRangeLast6Months } from "@/lib/queries";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(req: Request) {
   if (!isSupabaseConfigured()) {
     return Response.json({ error: "Supabase non configuré" }, { status: 500 });
   }
+
+  const body = await req.json().catch(() => ({})) as { force?: boolean };
+  const force = body?.force === true;
 
   try {
     const supabase = getSupabaseClient();
@@ -16,12 +19,23 @@ export async function POST() {
       .from("signals")
       .select("id", { count: "exact", head: true });
 
-    if (count && count > 100) {
+    if (count && count > 100 && !force) {
       return Response.json({
-        message: `La table contient déjà ${count} lignes. Seed ignoré.`,
+        message: `La table contient déjà ${count} lignes. Utilisez force:true pour re-seeder.`,
         count,
         seeded: false,
       });
+    }
+
+    // Purge si force
+    if (force && count && count > 0) {
+      const { error: delErr } = await supabase
+        .from("signals")
+        .delete()
+        .gte("created_at", "2000-01-01T00:00:00Z"); // supprime tout
+      if (delErr) {
+        return Response.json({ error: `Erreur suppression : ${delErr.message}` }, { status: 500 });
+      }
     }
 
     const range = defaultDateRangeLast6Months();
@@ -49,11 +63,7 @@ export async function POST() {
       const { error } = await supabase.from("signals").insert(batch);
       if (error) {
         return Response.json(
-          {
-            error: `Erreur insertion batch ${i}: ${error.message}`,
-            inserted,
-            total: signals.length,
-          },
+          { error: `Erreur insertion batch ${i}: ${error.message}`, inserted, total: signals.length },
           { status: 500 },
         );
       }

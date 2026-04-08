@@ -15,7 +15,6 @@ import {
   RefreshCw,
   TrendingUp,
   ArrowRight,
-  Sparkles,
 } from "lucide-react";
 
 type NBAAction = {
@@ -104,12 +103,7 @@ export default function NextBestActionsPage() {
               Next Best Actions
             </h1>
             <p className="mt-2 text-sm text-gray-500">
-              Actions stratégiques générées à partir de l'analyse en temps réel de vos données.
-              {data?.source === "mistral" && (
-                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[#C9A96E]/10 px-2 py-0.5 text-[10px] font-semibold text-[#C9A96E]">
-                  <Sparkles className="size-3" /> Généré par Mistral AI
-                </span>
-              )}
+              Actions stratégiques générées à partir de l&apos;analyse en temps réel de vos données.
             </p>
           </div>
           <button
@@ -268,7 +262,6 @@ export default function NextBestActionsPage() {
               dateStyle: "short",
               timeStyle: "short",
             })}
-            {data.source === "mistral" ? " — Mistral AI" : " — Analyse statique"}
           </div>
         )}
       </motion.div>
