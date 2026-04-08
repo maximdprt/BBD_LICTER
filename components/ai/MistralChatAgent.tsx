@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Loader2, Sparkles, RotateCcw } from "lucide-react";
-import { SephoraLogo } from "@/components/ui/SephoraLogo";
+import Image from "next/image";
 
 type Message = {
   id: string;
@@ -120,7 +120,14 @@ export function MistralChatAgent() {
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <SephoraLogo size={28} className="text-[#C9A96E]" />
+                  <Image
+                    src="/Couleur-logo-Sephora.jpg"
+                    alt="Sephora"
+                    width={120}
+                    height={40}
+                    priority
+                    style={{ height: 26, width: "auto" }}
+                  />
                   <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-black bg-emerald-400" />
                 </div>
                 <div className="text-sm font-semibold text-white">SEPHORA Intel AI</div>
@@ -152,7 +159,14 @@ export function MistralChatAgent() {
             >
               {messages.length === 0 && !loading && (
                 <div className="flex flex-col items-center gap-4 py-6">
-                  <SephoraLogo size={48} className="text-black" />
+                  <Image
+                    src="/Couleur-logo-Sephora.jpg"
+                    alt="Sephora"
+                    width={200}
+                    height={64}
+                    priority
+                    style={{ height: 40, width: "auto" }}
+                  />
                   <div className="text-center">
                     <p className="text-sm font-semibold text-gray-900">
                       Bienvenue sur SEPHORA Intel AI
@@ -183,7 +197,7 @@ export function MistralChatAgent() {
                 >
                   {msg.role === "assistant" && (
                     <div className="mr-2 mt-1 grid size-6 shrink-0 place-items-center rounded-full bg-black">
-                      <SephoraLogo size={14} className="text-[#C9A96E]" />
+                      <span className="text-[10px] font-black text-[#C9A96E]">S</span>
                     </div>
                   )}
                   <div
@@ -202,7 +216,7 @@ export function MistralChatAgent() {
               {loading && (
                 <div className="flex justify-start">
                   <div className="mr-2 mt-1 grid size-6 shrink-0 place-items-center rounded-full bg-black">
-                    <SephoraLogo size={14} className="text-[#C9A96E]" />
+                    <span className="text-[10px] font-black text-[#C9A96E]">S</span>
                   </div>
                   <div className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-500">
                     <Loader2 className="size-4 animate-spin text-[#C9A96E]" />
@@ -260,7 +274,7 @@ export function MistralChatAgent() {
         {open ? (
           <X className="size-5 text-white" />
         ) : (
-          <SephoraLogo size={26} className="text-[#C9A96E]" />
+          <span className="font-black text-[#C9A96E]">S</span>
         )}
       </motion.button>
     </>

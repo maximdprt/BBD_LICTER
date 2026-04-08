@@ -5,7 +5,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
-import { SephoraLogo } from "@/components/ui/SephoraLogo";
 import {
   Activity,
   Bell,

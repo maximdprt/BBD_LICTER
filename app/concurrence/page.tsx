@@ -6,7 +6,7 @@ import { CompetitorRadarChart } from "@/components/charts/CompetitorRadarChart";
 import { VoiceShareBarChart } from "@/components/charts/VoiceShareBarChart";
 import { CompetitorMatrix } from "@/components/sections/CompetitorMatrix";
 import { CompetitorTimeline } from "@/components/charts/CompetitorTimeline";
-import { SephoraLogo } from "@/components/ui/SephoraLogo";
+import Image from "next/image";
 import {
   useCompetitorComparison,
   useCompetitorRadarMetrics,
@@ -43,7 +43,14 @@ export default function ConcurrencePage() {
         {/* Brand comparison header */}
         <div className="flex items-center justify-center gap-8 rounded-2xl border border-gray-100 bg-white py-5 shadow-sm">
           <div className="flex items-center gap-3">
-            <SephoraLogo size={28} className="text-black" />
+            <Image
+              src="/Couleur-logo-Sephora.jpg"
+              alt="Sephora"
+              width={160}
+              height={52}
+              priority
+              style={{ height: 26, width: "auto" }}
+            />
             <span className="text-lg font-bold text-black">SEPHORA</span>
           </div>
           <div className="text-xl font-bold text-gray-300">VS</div>
