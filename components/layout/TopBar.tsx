@@ -2,7 +2,7 @@
 
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { SephoraLogo } from "@/components/ui/SephoraLogo";
-import Image from "next/image";
+import { SephoraWordmark } from "@/components/ui/SephoraWordmark";
 
 export function TopBar() {
   const exportPdf = async () => {
@@ -49,14 +49,7 @@ export function TopBar() {
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Image
-            src="/Couleur-logo-Sephora.jpg"
-            alt="Sephora"
-            width={140}
-            height={44}
-            priority
-            style={{ height: 22, width: "auto" }}
-          />
+          <SephoraWordmark height={22} className="text-black" />
           <div
             style={{
               fontFamily: "var(--font-body)",

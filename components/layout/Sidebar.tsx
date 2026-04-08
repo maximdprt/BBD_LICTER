@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { SephoraLogo } from "@/components/ui/SephoraLogo";
+import { SephoraWordmark } from "@/components/ui/SephoraWordmark";
 import {
   Activity,
   Bell,
@@ -58,14 +58,7 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
           style={{ display: "block", textDecoration: "none" }}
         >
           <div className="flex items-center gap-3">
-            <Image
-              src="/Couleur-logo-Sephora.jpg"
-              alt="Sephora"
-              width={170}
-              height={52}
-              priority
-              style={{ height: 34, width: "auto" }}
-            />
+            <SephoraWordmark height={34} className="text-white" />
             <div className="pl-1">
               <div
                 style={{
