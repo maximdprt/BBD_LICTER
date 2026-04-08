@@ -2,6 +2,7 @@
 
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { SephoraLogo } from "@/components/ui/SephoraLogo";
+import { SephoraWordmark } from "@/components/ui/SephoraWordmark";
 
 export function TopBar() {
   const exportPdf = async () => {
@@ -47,20 +48,8 @@ export function TopBar() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <SephoraLogo size={24} className="text-black" />
-        <div>
-          <div
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#000000",
-              lineHeight: 1.1,
-              letterSpacing: "0.02em",
-            }}
-          >
-            SEPHORA Intel
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <SephoraWordmark height={22} className="text-black" />
           <div
             style={{
               fontFamily: "var(--font-body)",
@@ -68,6 +57,7 @@ export function TopBar() {
               color: "var(--s-gold)",
               fontWeight: 500,
               letterSpacing: "0.08em",
+              marginLeft: 2,
             }}
           >
             Brand & Market Intelligence

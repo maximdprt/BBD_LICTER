@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { SephoraLogo } from "@/components/ui/SephoraLogo";
+import { SephoraWordmark } from "@/components/ui/SephoraWordmark";
 import {
   Activity,
   Bell,
@@ -57,20 +58,8 @@ export function SidebarContent(params?: { onNavigate?: () => void }) {
           style={{ display: "block", textDecoration: "none" }}
         >
           <div className="flex items-center gap-3">
-            <SephoraLogo size={36} className="text-[#C9A96E]" />
-            <div>
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: "#FFFFFF",
-                  letterSpacing: "0.02em",
-                  lineHeight: 1.1,
-                }}
-              >
-                SEPHORA
-              </div>
+            <SephoraWordmark height={34} className="text-white" />
+            <div className="pl-1">
               <div
                 style={{
                   fontFamily: "var(--font-body)",
