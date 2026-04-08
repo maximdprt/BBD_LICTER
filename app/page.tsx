@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, BarChart3, Shield, Zap } from "lucide-react";
 import { CommentScrollPanel } from "@/components/sections/CommentScrollPanel";
-import Image from "next/image";
+import { SephoraLogo } from "@/components/ui/SephoraLogo";
 import { useVerbatims } from "@/hooks/useMetrics";
 
 export default function Home() {
@@ -28,14 +28,7 @@ export default function Home() {
         className="mb-10"
       >
         <div className="flex items-center gap-4">
-          <Image
-            src="/Couleur-logo-Sephora.jpg"
-            alt="Sephora"
-            width={220}
-            height={72}
-            priority
-            style={{ height: 38, width: "auto" }}
-          />
+          <SephoraLogo size={44} className="text-black" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
               Bienvenue sur <span className="gold-shine">SEPHORA Intel</span>

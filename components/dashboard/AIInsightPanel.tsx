@@ -4,7 +4,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { motion, useReducedMotion } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import Image from "next/image";
+import { SephoraLogo } from "@/components/ui/SephoraLogo";
 
 type Payload = Readonly<{
   insight: string;
@@ -46,15 +46,7 @@ export function AIInsightPanel() {
             animate={prefersReducedMotion ? undefined : { opacity: [0.3, 0.6, 0.3] }}
             transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
           />
-          <Image
-            src="/Couleur-logo-Sephora.jpg"
-            alt="Sephora"
-            width={90}
-            height={30}
-            priority
-            className="relative z-10"
-            style={{ height: 18, width: "auto", filter: "invert(1)" }}
-          />
+          <SephoraLogo size={22} className="relative z-10 text-[#C9A96E]" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

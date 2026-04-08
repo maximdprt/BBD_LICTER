@@ -1,6 +1,7 @@
 "use client";
 
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
+import { SephoraLogo } from "@/components/ui/SephoraLogo";
 import Image from "next/image";
 
 export function TopBar() {
